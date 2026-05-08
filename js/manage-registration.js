@@ -31,11 +31,6 @@ function onInputAma(valore) {
     .catch(err => {
       console.error(err);
     });
-
-    // google.script.run
-    //   .withSuccessHandler(lista => mostraAutocompleteAma(lista))
-    //   .withFailureHandler(console.error)
-    //   .getAutocompleteCodiceBonifico(valore);
   }, 300);
 }
 
@@ -69,12 +64,6 @@ function onInputFulltext(valore) {
     .catch(err => {
       console.error(err);
     });
-
-
-    // google.script.run
-    //   .withSuccessHandler(lista => mostraAutocompleteFulltext(lista))
-    //   .withFailureHandler(console.error)
-    //   .getAutocompleteFulltext(valore);
   }, 300);
 }
 
@@ -122,25 +111,6 @@ function mostraAutocompleteFulltext(lista) {
   div.style.display = 'block';
 }
 
-
-// =====================
-// SELEZIONE DA AUTOCOMPLETE
-// =====================
-/** @deprecated utilizzare il selezioneCodiceTitolare */
-function selezionaAma(codiceBonifico) {
-  // Estrae solo i numeri dopo "AMA"
-  document.getElementById('input-ama').value = codiceBonifico.replace('AMA', '');
-  chiudiAutocomplete('ama');
-  cerca('codiceBonifico', codiceBonifico);
-}
-
-
-/** @deprecated utilizzare il selezioneCodiceTitolare */
-function selezionaFulltext(codiceBonifico, label) {
-  document.getElementById('input-fulltext').value = label;
-  chiudiAutocomplete('fulltext');
-  cerca('codiceBonifico', codiceBonifico); // cerca per codice esatto una volta selezionato
-}
 
 /**
  * 
@@ -218,23 +188,6 @@ function onKeydown(event, tipo) {
 }
 
 
-// =====================
-// INVIO CON TASTO ENTER
-// =====================
-// function onKeydown(event, tipo) {
-//   if (event.key !== 'Enter') return;
-
-//   if (tipo === 'ama') {
-//     const valore = 'AMA' + document.getElementById('input-ama').value.trim();
-//     chiudiAutocomplete('ama');
-//     cerca('codiceBonifico', valore);
-//   } else {
-//     const valore = document.getElementById('input-fulltext').value.trim();
-//     chiudiAutocomplete('fulltext');
-//     if (valore) cerca('fulltext', valore);
-//   }
-// }
-
 // Evidenzia la voce corrente nel dropdown
 function evidenziaItem(items, indice) {
   items.forEach((item, i) => {
@@ -264,28 +217,45 @@ function cerca(criterio, valore) {
   document.getElementById('risultati').style.display        = 'none';
   document.getElementById('nessun-risultato').style.display = 'none';
 
-  fetch(AppConfig.apiUrl, {
-    method: 'POST',
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({
-      action: "cercaIscritti",
-      formData: {
-        criterio: criterio, 
-        valore: valore
-      }
+  if ( criterio === "codiceBonifico" ) {
+
+    //chiamo la "autocomplete" in modalità "codice bonifico"
+    fetch(AppConfig.apiUrl, {
+      method: 'POST',
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "autocompleteCodiceBonifico",
+        formData: valore
+      })
     })
-  })
-  .then(res => res.json())
-  .then(res => {
-    mostraRisultati(res);
-  })
-  .catch(err => {
-    console.error(err);
-  });
-  // google.script.run
-  //   .withSuccessHandler(mostraRisultati)
-  //   .withFailureHandler(errore)
-  //   .cercaIscritti(criterio, valore);
+    .then(res => res.json())
+    .then(res => {
+      mostraRisultati(res);
+    })
+    .catch(err => {
+      console.error(err);
+    });
+
+  } else if ( criterio === "fulltext" ) {
+     //chiamo la "autocomplete" in modalità "ricerca fulltext"
+    fetch(AppConfig.apiUrl, {
+      method: 'POST',
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "autocompleteFulltext",
+        formData: valore
+      })
+    })
+    .then(res => res.json())
+    .then(res => {
+      mostraRisultati(res);
+    })
+    .catch(err => {
+      console.error(err);
+    });
+  } else {
+    //sono cazzi
+  }
 }
 
 function findByCodiceTitolare(codiceTitolare) {
@@ -310,10 +280,6 @@ function findByCodiceTitolare(codiceTitolare) {
   .catch(err => {
     console.error(err);
   });
-  // google.script.run
-  //   .withSuccessHandler(mostraRisultati)
-  //   .withFailureHandler(errore)
-  //   .cercaIscritti(criterio, valore);
 }
 
 
@@ -338,13 +304,19 @@ function mostraRisultati(lista) {
 
   lista.forEach(r => {
     const partecipanti = r.adulti + r.bambini + r.infanti;
+    const email   = r.email;
+
+    //parte da "capire" cosa scrivere... si rimanda a function specifica
+    const subject = encodeURIComponent("[AMA - Festa 2026] Chiarimento per pagamento non chiaro");
+    const body    = encodeURIComponent("Testo del messaggio...");
+
     const tr           = document.createElement('tr');
     tr.id              = `riga-${r.codiceBonifico}`;
     tr.innerHTML = `
-      <td><strong>${r.codiceBonifico}</strong></td>
+      <td title="codice titolare: ${r.codiceTitolare}><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td>${r.email}</td>
+      <td><a href="mailto:${email}?subject=${subject}&body=${body}">${email}</a></td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
