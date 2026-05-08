@@ -1,0 +1,162 @@
+* { box-sizing: border-box; }
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f5f5f5;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+h1 { color: #333; font-size: 22px; }
+h2 { color: #555; font-size: 20px; }
+
+/* Search area */
+.search-area {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+}
+
+.search-box label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Input codice AMA — prefisso grigio + input numeri */
+.input-ama-wrapper {
+  display: flex;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+.input-ama-wrapper:focus-within {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76,175,80,0.2);
+}
+
+.prefisso-ama {
+  padding: 10px 12px;
+  background: #f0f0f0;
+  color: #999;
+  font-size: 14px;
+  font-weight: bold;
+  border-right: 1px solid #ccc;
+  user-select: none;
+  pointer-events: none;
+}
+
+#input-ama {
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  font-size: 14px;
+  width: 100%;
+  background: white;
+}
+
+/* Input fulltext */
+#input-fulltext {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+#input-fulltext:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76,175,80,0.2);
+}
+
+/* Dropdown autocomplete */
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid #f5f5f5;
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover      { background: #f0f9f0; }
+
+.autocomplete-item .sub {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+/* Risultati */
+#loading           { display: none; color: #888; margin: 16px 0; font-size: 14px; }
+#nessun-risultato  { display: none; color: #888; margin: 16px 0; font-size: 14px; }
+#risultati         { display: none; }
+#contatore         { font-size: 13px; color: #888; margin-bottom: 10px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+thead tr    { background: #4CAF50; color: white; }
+th          { padding: 12px 10px; text-align: left; font-size: 13px; white-space: nowrap; }
+td          { padding: 10px; font-size: 13px; color: #444; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+td span     { text-align: center; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f9f9f9; }
+
+.badge {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.totale { font-weight: bold; color: #333; }
+
+.btn-conferma {
+  padding: 7px 14px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-conferma:hover     { background: #1976D2; }
+.btn-conferma:disabled  { background: #aaa; cursor: not-allowed; }
+.btn-conferma.confermato { background: #4CAF50; cursor: default; }
