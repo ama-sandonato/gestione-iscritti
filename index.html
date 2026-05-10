@@ -25,7 +25,6 @@
           id="input-ama"
           maxlength="3"
           placeholder="000"
-          oninput="onInputAma(this.value)"
           onkeydown="onKeydown(event, 'ama')"
           autocomplete="off"
         >
@@ -40,7 +39,6 @@
         type="text"
         id="input-fulltext"
         placeholder="Digita almeno 3 caratteri..."
-        oninput="onInputFulltext(this.value)"
         onkeydown="onKeydown(event, 'fulltext')"
         autocomplete="off"
       >
@@ -72,5 +70,25 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+  <!-- Struttura della Modale -->
+<div id="mailModal" class="modal-issue-email">
+  <div class="modal-issue-email-maindiv">
+    <h3>Invia Segnalazione</h3>
+    <hr>
+    <label>Destinatario:</label>
+    <input type="text" id="modalEmail" style="width:100%; margin-bottom:10px;" readonly>
+    
+    <label>Oggetto:</label>
+    <input type="text" id="modalSubject" style="width:100%; margin-bottom:10px;">
+    
+    <label>Messaggio:</label>
+    <textarea id="modalBody" style="width:100%; height:100px; margin-bottom:10px;"></textarea>
+    
+    <div style="text-align:right;">
+      <button class="btn-issue" onclick="closeMailModal()" style="background:#ccc; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Annulla</button>
+      <button class="btn-conferma" onclick="confirmSendMail(this)" style="background:#4285f4; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; margin-left:10px;">Invia</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

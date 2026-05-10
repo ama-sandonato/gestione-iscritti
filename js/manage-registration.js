@@ -6,6 +6,7 @@ let indiceFulltext = -1;
 // =====================
 // INPUT CODICE AMA
 // =====================
+/** @deprecated */
 function onInputAma(valore) {
   chiudiAutocomplete('fulltext');
   clearTimeout(timerAma);
@@ -39,6 +40,7 @@ function onInputAma(valore) {
 // =====================
 // INPUT FULLTEXT
 // =====================
+/** @deprecated */
 function onInputFulltext(valore) {
   chiudiAutocomplete('ama');
   clearTimeout(timerFulltext);
@@ -71,6 +73,7 @@ function onInputFulltext(valore) {
 // =====================
 // AUTOCOMPLETE AMA
 // =====================
+/** @deprecated */
 function mostraAutocompleteAma(lista) {
   const div = document.getElementById('autocomplete-ama');
 
@@ -93,6 +96,7 @@ function mostraAutocompleteAma(lista) {
 // =====================
 // AUTOCOMPLETE FULLTEXT
 // =====================
+/** @deprecated */
 function mostraAutocompleteFulltext(lista) {
   const div = document.getElementById('autocomplete-fulltext');
 
@@ -115,6 +119,7 @@ function mostraAutocompleteFulltext(lista) {
 /**
  * 
  * @param {string} codiceTitolare 
+ * @deprecated
  */
 function selezionaCodiceTitolare(codiceTitolare) {
   chiudiAutocomplete('ama');
@@ -169,7 +174,7 @@ function onKeydown(event, tipo) {
       // Altrimenti → cerca con il valore digitato (solo Enter)
     if (event.key === 'Enter') {
       if (tipo === 'ama') {
-        const valore = 'AMA' + document.getElementById('input-ama').value.trim();
+        const valore = document.getElementById('input-ama').value.trim();
         chiudiAutocomplete('ama');
         cerca('codiceBonifico', valore);
       } else {
@@ -189,6 +194,7 @@ function onKeydown(event, tipo) {
 
 
 // Evidenzia la voce corrente nel dropdown
+/** @deprecated */
 function evidenziaItem(items, indice) {
   items.forEach((item, i) => {
     item.style.background = i === indice ? '#f0f9f0' : '';
@@ -202,6 +208,7 @@ function evidenziaItem(items, indice) {
 }
 
 // Reset indice quando si chiude o si seleziona
+/** @deprecated */
 function resetIndice(tipo) {
   if (tipo === 'ama') indiceAma = -1;
   else                indiceFulltext = -1;
@@ -258,6 +265,7 @@ function cerca(criterio, valore) {
   }
 }
 
+/** @deprecated */
 function findByCodiceTitolare(codiceTitolare) {
   if (!codiceTitolare) return;
 
@@ -306,17 +314,13 @@ function mostraRisultati(lista) {
     const partecipanti = r.adulti + r.bambini + r.infanti;
     const email   = r.email;
 
-    //parte da "capire" cosa scrivere... si rimanda a function specifica
-    const subject = encodeURIComponent("[AMA - Festa 2026] Chiarimento per pagamento non chiaro");
-    const body    = encodeURIComponent("Testo del messaggio...");
-
     const tr           = document.createElement('tr');
     tr.id              = `riga-${r.codiceBonifico}`;
     tr.innerHTML = `
-      <td title="codice titolare: ${r.codiceTitolare}><strong>${r.codiceBonifico}</strong></td>
+      <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td><a href="mailto:${email}?subject=${subject}&body=${body}">${email}</a></td>
+      <td>${r.email}</td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
@@ -328,6 +332,12 @@ function mostraRisultati(lista) {
           id="btn-${r.codiceBonifico}"
           onclick="confermaPagamento('${r.codiceTitolare}', '${r.codiceBonifico}', this)">
           &#10003; Conferma Pagamento
+        </button>
+        <button
+          class="btn-issue"
+          id="btn-issue-${r.codiceBonifico}"
+          onclick="openMailModal('${r.email}', '${r.nome}', '${r.codiceBonifico}', this)">
+          📧 Segnala Problema
         </button>
       </td>
     `;
@@ -365,12 +375,6 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
   .catch(err => {
     console.error(err);
   });
-
-
-  // google.script.run
-  //   .withSuccessHandler(r  => esitoPagamento(r, codiceBonifico, btn))
-  //   .withFailureHandler(err => errore(err, btn))
-  //   .confermaPagamento(codiceBonifico);
 }
 
 
@@ -383,6 +387,8 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
     btn.classList.add("confermato");
     const riga = document.getElementById(`riga-${codiceBonifico}`);
     if (riga) riga.style.background = "#e8f5e9";
+    //nascondo il pulsante "invia segnalazione"
+    document.getElementById(`btn-issue-${codiceBonifico}`).style.display = 'none';
   } else {
     btn.disabled  = false;
     btn.innerText = "✓ Conferma Pagamento";
@@ -394,6 +400,7 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
 // =====================
 // CHIUDI AUTOCOMPLETE
 // =====================
+/** @deprecated */
 function chiudiAutocomplete(tipo) {
   document.getElementById(`autocomplete-${tipo}`).style.display = 'none';
   document.getElementById(`autocomplete-${tipo}`).innerHTML     = '';
@@ -405,13 +412,14 @@ function chiudiAutocomplete(tipo) {
 // CHIUDI AUTOCOMPLETE
 // cliccando fuori
 // =====================
+/*
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-box')) {
     chiudiAutocomplete('ama');
     chiudiAutocomplete('fulltext');
   }
 });
-
+*/
 
 // =====================
 // ERRORE GENERICO
@@ -424,4 +432,61 @@ function errore(err, btn) {
   }
   alert("❌ Errore: " + err);
   console.error(err);
+}
+
+
+/**
+ * Apre una modale per l'invio di una segnalazione
+ * 
+ * @param {*} email 
+ * @param {*} nomeUtente 
+ * @param {*} codiceBonifico 
+ * @param {*} btn 
+ */
+function openMailModal(email, nomeUtente, codiceBonifico, btn) {
+
+  // Imposta i valori predefiniti
+  document.getElementById('modalEmail').value = email;
+  document.getElementById('modalSubject').value = "AMA - Festa 2026 - Problema pagamento bonifico : " + codiceBonifico;
+  document.getElementById('modalBody').value = "Ciao " + nomeUtente + ",\nti scriviamo in merito alla tua iscrizione...";
+  
+  // Mostra la modale
+  document.getElementById('mailModal').style.display = 'block';
+}
+
+function closeMailModal() {
+  document.getElementById('mailModal').style.display = 'none';
+}
+
+function confirmSendMail(btn) {
+  const email = document.getElementById('modalEmail').value;
+  const subject = document.getElementById('modalSubject').value;
+  const body = document.getElementById('modalBody').value;
+
+  // Disabilita il tasto per evitare doppi invii
+  btn.disabled = true;
+  btn.innerText = "Invio in corso...";
+
+  // Chiamata alla funzione Apps Script sul server
+  fetch(AppConfig.apiUrl, {
+    method: 'POST',
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({
+      action: "sendIssueMail",
+      formData: {
+        destinationEmail: email,
+        emailSubject: subject,
+        emailBody: body
+      }
+    })
+  })
+  .then(res => res.json())
+  .then(res => {
+    alert("Email inviata con successo!");
+    closeMailModal();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Errore nell'invio: " + err.message);
+  });
 }
