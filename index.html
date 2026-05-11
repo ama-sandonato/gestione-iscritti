@@ -10,6 +10,11 @@
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
+  <!-- Header utente loggato -->
+  <div class="user-header" id="user-header">
+    <span>Benvenuto, <strong id="user-header-name"></strong></span>
+    <button class="btn-logout" onclick="logout()">✕ Esci</button>
+  </div>
 
   <!-- Spinner -->
   <div id="loading-overlay">
@@ -17,11 +22,36 @@
     <p style="color: var(--deep-blue); font-weight: 600; font-size: 14px;">Sto lavorando per te...</p>
   </div>
 
+  <!-- Login card -->
+  <div class="login-card" id="login-card">
+    <h1 class="page-title">Le Mille e Una Notte 2026</h1>
+    <p class="page-subtitle">🔐 Area Riservata</p>
+
+    <div class="login-error" id="login-error"></div>
+
+    <form onsubmit="doLogin(); return false;">
+      <div class="login-field">
+        <label>Utente</label>
+        <input type="text" id="login-user" placeholder="username"
+          autocomplete="username"
+          onkeydown="onLoginKeydown(event)">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••"
+          autocomplete="current-password"
+          onkeydown="onLoginKeydown(event)">
+      </div>
+
+      <button type="submit" class="btn-login" id="btn-login">Accedi</button>
+    </form>
+  </div>
+
   <!-- Card principale -->
-  <div class="main-card">
+  <div class="main-card" id="main-card">
 
     <h1 class="page-title">Le Mille e Una Notte 2026</h1>
-    <p class="page-subtitle">💰 Gestione Pagamenti &nbsp;·&nbsp; Ver. 2.0 💰</p>
+    <p class="page-subtitle">💰 Gestione Pagamenti 💰</p>
 
     <!-- Area di ricerca -->
     <div class="search-area">
