@@ -1,3 +1,137 @@
+// =====================
+// AUTH & SESSION
+// =====================
+const TOKEN_KEY = 'ama_token';
+const USER_KEY  = 'ama_user';
+
+function getToken()  { return sessionStorage.getItem(TOKEN_KEY); }
+function getUser()   { return sessionStorage.getItem(USER_KEY); }
+
+function saveSession(token, user) {
+  sessionStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(USER_KEY, user);
+}
+
+function clearSession() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+}
+
+function showLoginCard() {
+  document.getElementById('login-card').style.display    = 'block';
+  document.getElementById('main-card').style.display     = 'none';
+  document.getElementById('user-header').style.display   = 'none';
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function showMainCard() {
+  document.getElementById('login-card').style.display    = 'none';
+  document.getElementById('main-card').style.display     = 'block';
+  document.getElementById('user-header').style.display   = 'flex';
+  document.getElementById('user-header-name').innerText  = getUser();
+}
+
+// Eseguito al caricamento della pagina
+document.addEventListener('DOMContentLoaded', () => {
+  if (getToken()) {
+    showMainCard();
+  } else {
+    showLoginCard();
+  }
+});
+
+function onLoginKeydown(event) {
+  if (event.key === 'Enter') doLogin();
+}
+
+function doLogin() {
+  const user     = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errorDiv = document.getElementById('login-error');
+  const btn      = document.getElementById('btn-login');
+
+  errorDiv.style.display = 'none';
+
+  if (!user || !password) {
+    errorDiv.innerText     = 'Inserisci utente e password.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  btn.disabled  = true;
+  btn.innerText = 'Accesso in corso...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  fetch(AppConfig.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'login', formData: { user, password } })
+  })
+  .then(res => res.json())
+  .then(res => {
+    document.getElementById('loading-overlay').style.display = 'none';
+    btn.disabled  = false;
+    btn.innerText = 'Accedi';
+
+    if (res.esito === 'OK') {
+      saveSession(res.token, res.user);
+      document.getElementById('login-password').value = '';
+      showMainCard();
+    } else {
+      errorDiv.innerText     = '❌ ' + (res.messaggio || 'Credenziali non valide.');
+      errorDiv.style.display = 'block';
+    }
+  })
+  .catch(err => {
+    document.getElementById('loading-overlay').style.display = 'none';
+    btn.disabled       = false;
+    btn.innerText      = 'Accedi';
+    errorDiv.innerText = '❌ Errore di connessione.';
+    errorDiv.style.display = 'block';
+    console.error(err);
+  });
+}
+
+function logout() {
+  clearSession();
+  // reset UI
+  document.getElementById('tbody').innerHTML        = '';
+  document.getElementById('risultati').style.display     = 'none';
+  document.getElementById('nessun-risultato').style.display = 'none';
+  document.getElementById('input-ama').value        = '';
+  document.getElementById('input-fulltext').value   = '';
+  showLoginCard();
+}
+
+
+// =====================
+// API WRAPPER
+// =====================
+function apiCall(body) {
+  body.token = getToken();
+
+  return fetch(AppConfig.apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.motivo === 'AUTH_EXPIRED' || res.motivo === 'AUTH_MISSING' || res.motivo === 'AUTH_INVALID') {
+      clearSession();
+      showLoginCard();
+      // mostra messaggio solo per scadenza, non per missing/invalid (logout volontario)
+      if (res.motivo === 'AUTH_EXPIRED') {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.innerText     = '⏰ Sessione scaduta. Effettua nuovamente il login.';
+        errorDiv.style.display = 'block';
+      }
+      return Promise.reject('auth');
+    }
+    return res;
+  });
+}
+
 
 function onKeydown(event, tipo) {
   if (event.key === 'Enter') {
@@ -15,6 +149,7 @@ function onKeydown(event, tipo) {
 // =====================
 // CERCA
 // =====================
+/*
 function cerca(criterio, valore) {
   if (!valore) return;
 
@@ -46,7 +181,26 @@ function cerca(criterio, valore) {
     throw new Error(`Criterio di ricerca [${criterio}] non valido!`);
   }
 }
+*/
+function cerca(criterio, valore) {
+  if (!valore) return;
 
+  document.getElementById('loading-overlay').style.display      = 'flex';
+  document.getElementById('risultati').style.display            = 'none';
+  document.getElementById('nessun-risultato').style.display     = 'none';
+
+  const actionMap = {
+    codiceBonifico: 'autocompleteCodiceBonifico',
+    fulltext:       'autocompleteFulltext'
+  };
+  const action = actionMap[criterio];
+  if (!action) throw new Error(`Criterio di ricerca [${criterio}] non valido!`);
+
+  apiCall({ action, formData: valore })
+    .then(res => mostraRisultati(res))
+    .catch(err => { if (err !== 'auth') console.error(err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+}
 
 // =====================
 // MOSTRA RISULTATI
@@ -105,6 +259,7 @@ function mostraRisultati(lista) {
 // =====================
 // CONFERMA PAGAMENTO
 // =====================
+/*
 function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
   openConfirmModal(
     `Stai per confermare il pagamento per il codice <strong>${codiceBonifico}</strong>. Continuare?`,
@@ -130,6 +285,26 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
         console.error(err);
         document.getElementById('loading-overlay').style.display = 'none';
       });
+    }
+  );
+}
+*/
+function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
+  openConfirmModal(
+    `Stai per confermare il pagamento per il codice <strong>${codiceBonifico}</strong>. Continuare?`,
+    () => {
+      btn.disabled  = true;
+      btn.innerText = '⏳ Salvataggio...';
+      document.getElementById('loading-overlay').style.display = 'flex';
+
+      apiCall({ action: 'confirmPayment', formData: { codiceTitolare, codiceBonifico } })
+        .then(res => esitoPagamento(res, codiceBonifico, btn))
+        .catch(err => {
+          if (err !== 'auth') console.error(err);
+          btn.disabled  = false;
+          btn.innerText = '✓ Conferma Pagamento';
+        })
+        .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
     }
   );
 }
@@ -205,6 +380,7 @@ function closeMailModal() {
   document.getElementById('mailModal').style.display = 'none';
 }
 
+/*
 function confirmSendMail(btn) {
   const email   = document.getElementById('modalEmail').value;
   const subject = document.getElementById('modalSubject').value;
@@ -232,4 +408,20 @@ function confirmSendMail(btn) {
     document.getElementById('loading-overlay').style.display = 'none';
     alert("Errore nell'invio: " + err.message);
   });
+}
+  */
+
+function confirmSendMail(btn) {
+  const email   = document.getElementById('modalEmail').value;
+  const subject = document.getElementById('modalSubject').value;
+  const body    = document.getElementById('modalBody').value;
+
+  document.getElementById('loading-overlay').style.display = 'flex';
+  btn.disabled  = true;
+  btn.innerText = 'Invio in corso...';
+
+  apiCall({ action: 'sendIssueMail', formData: { destinationEmail: email, emailSubject: subject, emailBody: body } })
+    .then(() => closeMailModal())
+    .catch(err => { if (err !== 'auth') alert("Errore nell'invio: " + err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; btn.disabled = false; btn.innerText = 'Invia'; });
 }
