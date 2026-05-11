@@ -1,218 +1,21 @@
-let timerAma      = null;
-let timerFulltext = null;
-let indiceAma      = -1;
-let indiceFulltext = -1;
-
-// =====================
-// INPUT CODICE AMA
-// =====================
-/** @deprecated */
-function onInputAma(valore) {
-  chiudiAutocomplete('fulltext');
-  clearTimeout(timerAma);
-
-  if (!valore) {
-    chiudiAutocomplete('ama');
-    return;
-  }
-
-  timerAma = setTimeout(() => {
-    fetch(AppConfig.apiUrl, {
-      method: 'POST',
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({
-        action: "autocompleteCodiceBonifico",
-        formData: valore
-      })
-    })
-    .then(res => res.json())
-    .then(res => {
-      mostraAutocompleteAma(res);
-    })
-    .catch(err => {
-      console.error(err);
-    });
-  }, 300);
-}
-
-
-
-// =====================
-// INPUT FULLTEXT
-// =====================
-/** @deprecated */
-function onInputFulltext(valore) {
-  chiudiAutocomplete('ama');
-  clearTimeout(timerFulltext);
-
-  if (valore.length < 3) {
-    chiudiAutocomplete('fulltext');
-    return;
-  }
-
-  timerFulltext = setTimeout(() => {
-    fetch(AppConfig.apiUrl, {
-      method: 'POST',
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({
-        action: "autocompleteFulltext",
-        formData: valore
-      })
-    })
-    .then(res => res.json())
-    .then(res => {
-      mostraAutocompleteFulltext(res);
-    })
-    .catch(err => {
-      console.error(err);
-    });
-  }, 300);
-}
-
-
-// =====================
-// AUTOCOMPLETE AMA
-// =====================
-/** @deprecated */
-function mostraAutocompleteAma(lista) {
-  const div = document.getElementById('autocomplete-ama');
-
-  if (!lista || lista.length === 0) {
-    chiudiAutocomplete('ama');
-    return;
-  }
-
-  div.innerHTML = lista.map(user => `
-    <div class="autocomplete-item" onclick="selezionaCodiceTitolare('${user.codiceTitolare}')">
-      <strong>${user.nome} ${user.cognome}</strong>
-      <div class="sub">${user.email} — ${user.codiceBonifico} - ${user.prezzo}€</div>
-    </div>
-  `).join('');
-
-  div.style.display = 'block';
-}
-
-
-// =====================
-// AUTOCOMPLETE FULLTEXT
-// =====================
-/** @deprecated */
-function mostraAutocompleteFulltext(lista) {
-  const div = document.getElementById('autocomplete-fulltext');
-
-  if (!lista || lista.length === 0) {
-    chiudiAutocomplete('fulltext');
-    return;
-  }
-
-  div.innerHTML = lista.map(user => `
-    <div class="autocomplete-item" onclick="selezionaCodiceTitolare('${user.codiceTitolare}')">
-      <strong>${user.nome} ${user.cognome}</strong>
-      <div class="sub">${user.email} — ${user.codiceBonifico} - ${user.prezzo}€</div>
-    </div>
-  `).join('');
-
-  div.style.display = 'block';
-}
-
-
-/**
- * 
- * @param {string} codiceTitolare 
- * @deprecated
- */
-function selezionaCodiceTitolare(codiceTitolare) {
-  chiudiAutocomplete('ama');
-  chiudiAutocomplete('fulltext');
-  findByCodiceTitolare(codiceTitolare); // cerca per codice esatto una volta selezionato
-}
-
 
 function onKeydown(event, tipo) {
-  const listaId = `autocomplete-${tipo}`;
-  const lista   = document.getElementById(listaId);
-  const items   = lista.querySelectorAll('.autocomplete-item');
-
-  // Freccia giù
-  if (event.key === 'ArrowDown') {
-    event.preventDefault();
-    if (tipo === 'ama') {
-      indiceAma = Math.min(indiceAma + 1, items.length - 1);
-      evidenziaItem(items, indiceAma);
-    } else {
-      indiceFulltext = Math.min(indiceFulltext + 1, items.length - 1);
-      evidenziaItem(items, indiceFulltext);
-    }
-    return;
-  }
-
-  // Freccia su
-  if (event.key === 'ArrowUp') {
-    event.preventDefault();
-    if (tipo === 'ama') {
-      indiceAma = Math.max(indiceAma - 1, 0);
-      evidenziaItem(items, indiceAma);
-    } else {
-      indiceFulltext = Math.max(indiceFulltext - 1, 0);
-      evidenziaItem(items, indiceFulltext);
-    }
-    return;
-  }
-
   // Enter o Tab — seleziona la voce evidenziata
-  if (event.key === 'Enter' || event.key === 'Tab') {
-    const indice = tipo === 'ama' ? indiceAma : indiceFulltext;
-
-    // Se c'è una voce evidenziata nel dropdown → selezionala
-    if (lista.style.display === 'block' && indice >= 0 && items[indice]) {
-      event.preventDefault();
-      items[indice].click();
-      resetIndice(tipo);
-      return;
-    }
-
-      // Altrimenti → cerca con il valore digitato (solo Enter)
+  if (event.key === 'Enter') {
+    // Altrimenti → cerca con il valore digitato (solo Enter)
     if (event.key === 'Enter') {
       if (tipo === 'ama') {
         const valore = document.getElementById('input-ama').value.trim();
-        chiudiAutocomplete('ama');
-        cerca('codiceBonifico', valore);
+        if (valore) cerca('codiceBonifico', valore);
       } else {
         const valore = document.getElementById('input-fulltext').value.trim();
-        chiudiAutocomplete('fulltext');
         if (valore) cerca('fulltext', valore);
       }
     }
   }
 
-  // Escape — chiudi dropdown
-  if (event.key === 'Escape') {
-    chiudiAutocomplete(tipo);
-    resetIndice(tipo);
-  }
 }
 
-
-// Evidenzia la voce corrente nel dropdown
-/** @deprecated */
-function evidenziaItem(items, indice) {
-  items.forEach((item, i) => {
-    item.style.background = i === indice ? '#f0f9f0' : '';
-    item.style.fontWeight = i === indice ? 'bold'    : 'normal';
-  });
-
-  // Scroll automatico se la voce è fuori dalla lista visibile
-  if (items[indice]) {
-    items[indice].scrollIntoView({ block: 'nearest' });
-  }
-}
-
-// Reset indice quando si chiude o si seleziona
-/** @deprecated */
-function resetIndice(tipo) {
-  if (tipo === 'ama') indiceAma = -1;
-  else                indiceFulltext = -1;
-}    
 
 // =====================
 // CERCA
@@ -220,7 +23,7 @@ function resetIndice(tipo) {
 function cerca(criterio, valore) {
   if (!valore) return;
 
-  document.getElementById('loading').style.display          = 'block';
+  document.getElementById('loading-overlay').style.display = 'flex';
   document.getElementById('risultati').style.display        = 'none';
   document.getElementById('nessun-risultato').style.display = 'none';
 
@@ -238,9 +41,11 @@ function cerca(criterio, valore) {
     .then(res => res.json())
     .then(res => {
       mostraRisultati(res);
+      document.getElementById('loading-overlay').style.display = 'none';
     })
     .catch(err => {
       console.error(err);
+      document.getElementById('loading-overlay').style.display = 'none';
     });
 
   } else if ( criterio === "fulltext" ) {
@@ -256,56 +61,30 @@ function cerca(criterio, valore) {
     .then(res => res.json())
     .then(res => {
       mostraRisultati(res);
+      document.getElementById('loading-overlay').style.display = 'none';
     })
     .catch(err => {
       console.error(err);
+      document.getElementById('loading-overlay').style.display = 'none';
     });
   } else {
     //sono cazzi
+    throw new Error(`Criterio di ricerca [${criterio}] non valido!`);
   }
 }
-
-/** @deprecated */
-function findByCodiceTitolare(codiceTitolare) {
-  if (!codiceTitolare) return;
-
-  document.getElementById('loading').style.display          = 'block';
-  document.getElementById('risultati').style.display        = 'none';
-  document.getElementById('nessun-risultato').style.display = 'none';
-
-  fetch(AppConfig.apiUrl, {
-    method: 'POST',
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({
-      action: "findPendingRegistered",
-      formData: codiceTitolare
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    mostraRisultati(res);
-  })
-  .catch(err => {
-    console.error(err);
-  });
-}
-
-
 
 
 // =====================
 // MOSTRA RISULTATI
 // =====================
 function mostraRisultati(lista) {
-  document.getElementById('loading').style.display = 'none';
-
   if (!lista || lista.length === 0) {
     document.getElementById('nessun-risultato').style.display = 'block';
     return;
   }
 
   document.getElementById('contatore').innerText =
-    `${lista.length} iscritto/i trovato/i`;
+    `${lista.length} iscritt${lista.length === 1 ? 'o' : 'i'} trovat${lista.length === 1 ? 'o' : 'i'}`;
 
   const tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
@@ -356,6 +135,7 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
 
   btn.disabled  = true;
   btn.innerText = "⏳ Salvataggio...";
+  document.getElementById('loading-overlay').style.display = 'flex';
 
   fetch(AppConfig.apiUrl, {
     method: 'POST',
@@ -371,9 +151,11 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
   .then(res => res.json())
   .then(res => {
     esitoPagamento(res, codiceBonifico, btn);
+    document.getElementById('loading-overlay').style.display = 'none';
   })
   .catch(err => {
     console.error(err);
+    document.getElementById('loading-overlay').style.display = 'none';
   });
 }
 
@@ -397,35 +179,11 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
 }
 
 
-// =====================
-// CHIUDI AUTOCOMPLETE
-// =====================
-/** @deprecated */
-function chiudiAutocomplete(tipo) {
-  document.getElementById(`autocomplete-${tipo}`).style.display = 'none';
-  document.getElementById(`autocomplete-${tipo}`).innerHTML     = '';
-  resetIndice(tipo);
-}
-
-
-// =====================
-// CHIUDI AUTOCOMPLETE
-// cliccando fuori
-// =====================
-/*
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.search-box')) {
-    chiudiAutocomplete('ama');
-    chiudiAutocomplete('fulltext');
-  }
-});
-*/
 
 // =====================
 // ERRORE GENERICO
 // =====================
 function errore(err, btn) {
-  document.getElementById('loading').style.display = 'none';
   if (btn) {
     btn.disabled  = false;
     btn.innerText = "✓ Conferma Pagamento";
@@ -463,6 +221,9 @@ function confirmSendMail(btn) {
   const subject = document.getElementById('modalSubject').value;
   const body = document.getElementById('modalBody').value;
 
+  //metto lo spinner
+  document.getElementById('loading-overlay').style.display = 'flex';
+
   // Disabilita il tasto per evitare doppi invii
   btn.disabled = true;
   btn.innerText = "Invio in corso...";
@@ -482,11 +243,13 @@ function confirmSendMail(btn) {
   })
   .then(res => res.json())
   .then(res => {
-    alert("Email inviata con successo!");
     closeMailModal();
+    document.getElementById('loading-overlay').style.display = 'none';
   })
   .catch(err => {
     console.error(err);
+    document.getElementById('loading-overlay').style.display = 'none';
     alert("Errore nell'invio: " + err.message);
   });
+
 }
