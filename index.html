@@ -10,95 +10,119 @@
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
+
+  <!-- Spinner -->
   <div id="loading-overlay">
     <div class="spinner"></div>
-    <p>Sto lavorando per te...</p>
+    <p style="color: var(--deep-blue); font-weight: 600; font-size: 14px;">Sto lavorando per te...</p>
   </div>
 
-  <h1>Le Mille e Una Notte 2026</h1>
-  <h2>&#128182; Gestione Pagamenti Ver. 2.0 &#128182;</h2>
-  
-  <div class="search-area">
+  <!-- Card principale -->
+  <div class="main-card">
 
-    <!-- Ricerca per codice AMA -->
-    <div class="search-box">
-      <label>&#128179; Codice Bonifico</label>
-      <div class="input-ama-wrapper">
-        <span class="prefisso-ama">AMA</span>
-        <input
+    <h1 class="page-title">Le Mille e Una Notte 2026</h1>
+    <p class="page-subtitle">💰 Gestione Pagamenti &nbsp;·&nbsp; Ver. 2.0 💰</p>
+
+    <!-- Area di ricerca -->
+    <div class="search-area">
+
+      <!-- Ricerca per codice AMA -->
+      <div class="search-box">
+        <label>🏦 Codice Bonifico</label>
+        <div class="input-ama-wrapper">
+          <span class="prefisso-ama">AMA</span>
+          <input
             id="input-ama"
-            type="text" 
-            inputmode="numeric" 
-            pattern="[0-9]{3}" 
-            maxlength="3" 
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]{3}"
+            maxlength="3"
             onkeyup="this.value = this.value.replace(/[^0-9]/g, '')"
             placeholder="000"
             onkeydown="onKeydown(event, 'ama')"
             autocomplete="off"
-        >
-        <button class="btn-conferma" onclick="cerca('codiceBonifico', document.getElementById('input-ama').value.trim())">Cerca</button>
+          >
+          <button class="btn-conferma" onclick="cerca('codiceBonifico', document.getElementById('input-ama').value.trim())">Cerca</button>
+        </div>
+      </div>
+
+      <!-- Ricerca fulltext -->
+      <div class="search-box">
+        <label>🔍 Ricerca libera (nome, cognome, email)</label>
+        <div class="input-ama-wrapper">
+          <input
+            type="text"
+            id="input-fulltext"
+            placeholder="Digita almeno 3 caratteri..."
+            onkeydown="onKeydown(event, 'fulltext')"
+            autocomplete="off"
+            style="border-radius:0;"
+          >
+          <button class="btn-conferma" onclick="cerca('fulltext', document.getElementById('input-fulltext').value.trim())">Cerca</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Nessun risultato -->
+    <div id="nessun-risultato">🔍 Nessun iscritto trovato per il criterio di ricerca inserito.</div>
+
+    <!-- Risultati -->
+    <div id="risultati">
+      <div id="contatore"></div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Codice Bonifico</th>
+              <th>Nome</th>
+              <th>Cognome</th>
+              <th>Email</th>
+              <th>Partecipanti</th>
+              <th>Menu 1</th>
+              <th>Menu 2</th>
+              <th>Birre</th>
+              <th>Totale</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- Ricerca fulltext -->
-    <div class="search-box">
-      <label>&#128269; Ricerca libera (nome, cognome, email)</label>
-      <div class="input-ama-wrapper">
-        <input
-          type="text"
-          id="input-fulltext"
-          placeholder="Digita almeno 3 caratteri..."
-          onkeydown="onKeydown(event, 'fulltext')"
-          autocomplete="off"
-        >
-        <button class="btn-conferma" onclick="cerca('fulltext', document.getElementById('input-fulltext').value.trim())">Cerca</button>
+  </div><!-- /main-card -->
+
+  <!-- Modale conferma pagamento -->
+  <div id="confirmModal" class="modal-confirm">
+    <div class="modal-confirm-maindiv">
+      <div class="modal-confirm-icon">💳</div>
+      <h3 id="confirmModalTitle">Conferma Pagamento</h3>
+      <p id="confirmModalText"></p>
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeConfirmModal()">Annulla</button>
+        <button class="btn-conferma" id="confirmModalOkBtn">✓ Conferma</button>
       </div>
     </div>
-
   </div>
 
-  <div id="nessun-risultato">&#128269; Nessun iscritto trovato per il criterio di ricerca inserito</div>
-
-  <div id="risultati">
-    <div id="contatore"></div>
-    <table>
-      <thead>
-        <tr>
-          <th>Codice Bonifico</th>
-          <th>Nome</th>
-          <th>Cognome</th>
-          <th>Email</th>
-          <th>Partecipanti</th>
-          <th>Menu 1</th>
-          <th>Menu 2</th>
-          <th>Birre</th>
-          <th>Totale</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- Struttura della Modale -->
+  <!-- Modale email segnalazione -->
   <div id="mailModal" class="modal-issue-email">
     <div class="modal-issue-email-maindiv">
-      <h3>Invia Segnalazione</h3>
+      <h3>📧 Invia Segnalazione</h3>
       <hr>
-      <label>Destinatario:</label>
-      <input type="text" id="modalEmail" style="width:100%; margin-bottom:10px;" readonly>
-    
-      <label>Oggetto:</label>
-      <input type="text" id="modalSubject" style="width:100%; margin-bottom:10px;">
-    
-      <label>Messaggio:</label>
-      <textarea id="modalBody" style="width:100%; height:100px; margin-bottom:10px;"></textarea>
-    
-      <div style="text-align:right;">
+      <label>Destinatario</label>
+      <input type="text" id="modalEmail" readonly>
+      <label>Oggetto</label>
+      <input type="text" id="modalSubject">
+      <label>Messaggio</label>
+      <textarea id="modalBody"></textarea>
+      <div class="modal-footer">
         <button class="btn-annulla" onclick="closeMailModal()">Annulla</button>
         <button class="btn-conferma" onclick="confirmSendMail(this)">Invia</button>
       </div>
     </div>
   </div>
+
 </body>
 </html>
