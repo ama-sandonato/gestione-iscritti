@@ -29,6 +29,7 @@ function showMainCard() {
   document.getElementById('main-card').style.display     = 'block';
   document.getElementById('user-header').style.display   = 'flex';
   document.getElementById('user-header-name').innerText  = getUser();
+  showTab('pagamenti');
 }
 
 // Eseguito al caricamento della pagina
@@ -94,12 +95,14 @@ function doLogin() {
 
 function logout() {
   clearSession();
-  // reset UI
-  document.getElementById('tbody').innerHTML        = '';
-  document.getElementById('risultati').style.display     = 'none';
-  document.getElementById('nessun-risultato').style.display = 'none';
-  document.getElementById('input-ama').value        = '';
-  document.getElementById('input-fulltext').value   = '';
+  document.getElementById('tbody').innerHTML                        = '';
+  document.getElementById('risultati').style.display               = 'none';
+  document.getElementById('nessun-risultato').style.display        = 'none';
+  document.getElementById('input-ama').value                       = '';
+  document.getElementById('input-fulltext').value                  = '';
+  document.getElementById('tbody-scordarelli').innerHTML           = '';
+  document.getElementById('risultati-scordarelli').style.display   = 'none';
+  document.getElementById('nessun-scordarello').style.display      = 'none';
   showLoginCard();
 }
 
@@ -243,7 +246,7 @@ function mostraRisultati(lista) {
           <button
             class="btn-issue"
             id="btn-issue-${r.codiceBonifico}"
-            onclick="openMailModal('${r.email}', '${r.nome}', '${r.codiceBonifico}', this)">
+            onclick="openMailModal('${r.email}', '${r.nome}', '${r.codiceBonifico}', ${r.prezzo}, this)">
             Segnala
           </button>
         </div>
@@ -315,8 +318,10 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
 // =====================
 let _confirmCallback = null;
 
-function openConfirmModal(testo, onConfirm) {
-  document.getElementById('confirmModalText').innerHTML = testo;
+function openConfirmModal(testo, onConfirm, { icon = '💳', title = 'Conferma Pagamento' } = {}) {
+  document.getElementById('confirmModalIcon').innerText  = icon;
+  document.getElementById('confirmModalTitle').innerText = title;
+  document.getElementById('confirmModalText').innerHTML  = testo;
   _confirmCallback = onConfirm;
   const modal = document.getElementById('confirmModal');
   modal.style.display = 'flex';
@@ -369,10 +374,32 @@ function errore(err, btn) {
 // =====================
 // MODALE EMAIL
 // =====================
-function openMailModal(email, nomeUtente, codiceBonifico, btn) {
+
+// "AMA005" → "005 - Donazione A.M.A."
+function formatCodiceEmail(codice) {
+  return codice.replace(/^AMA/i, '') + ' - Donazione A.M.A.';
+}
+
+function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
+  const codiceFormattato = formatCodiceEmail(codiceBonifico);
+  const importoAtteso    = Number(prezzo).toFixed(2);
   document.getElementById('modalEmail').value   = email;
-  document.getElementById('modalSubject').value = "AMA - Festa 2026 - Problema pagamento bonifico : " + codiceBonifico;
-  document.getElementById('modalBody').value    = "Ciao " + nomeUtente + ",\nti scriviamo in merito alla tua iscrizione...";
+  document.getElementById('modalSubject').value = `AMA - Festa 2026 - Verifica importo bonifico - ${codiceFormattato}`;
+  document.getElementById('modalBody').value    =
+`Ciao ${nomeUtente},
+
+ti scriviamo in merito alla tua iscrizione alla festa "Le Mille e Una Notte 2026".
+
+Verificando il pagamento associato al tuo codice personale (${codiceFormattato}), abbiamo riscontrato una differenza tra l'importo atteso e quello ricevuto sul nostro conto.
+
+In base alla tua prenotazione, l'importo corretto da versare è di € ${importoAtteso}.
+
+Ti chiediamo gentilmente di verificare il bonifico effettuato e, qualora fosse necessario, di procedere con un versamento integrativo per la differenza. In alternativa, se ritieni che ci sia un errore da parte nostra, ti invitiamo a rispondere a questa email allegando la ricevuta del bonifico così da poter verificare insieme.
+
+Ci scusiamo per il disturbo e restiamo a tua completa disposizione per qualsiasi chiarimento.
+
+A presto,
+Lo staff AMA San Donato`;
   document.getElementById('mailModal').style.display = 'flex';
 }
 
@@ -424,4 +451,151 @@ function confirmSendMail(btn) {
     .then(() => closeMailModal())
     .catch(err => { if (err !== 'auth') alert("Errore nell'invio: " + err); })
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; btn.disabled = false; btn.innerText = 'Invia'; });
+}
+
+
+// =====================
+// TAB NAVIGATION
+// =====================
+function showTab(tab) {
+  document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'    ? 'block' : 'none';
+  document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli'  ? 'block' : 'none';
+  document.getElementById('tab-btn-pagamenti').classList.toggle('active',   tab === 'pagamenti');
+  document.getElementById('tab-btn-scordarelli').classList.toggle('active', tab === 'scordarelli');
+}
+
+
+// =====================
+// SCORDARELLI
+// =====================
+function caricaScordarelli() {
+  const giorni = document.getElementById('select-giorni').value;
+
+  document.getElementById('loading-overlay').style.display          = 'flex';
+  document.getElementById('risultati-scordarelli').style.display    = 'none';
+  document.getElementById('nessun-scordarello').style.display       = 'none';
+
+  apiCall({ action: 'getScordarelli', formData: { giorni: Number(giorni) } })
+    .then(res => mostraScordarelli(res))
+    .catch(err => { if (err !== 'auth') console.error(err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+}
+
+function mostraScordarelli(lista) {
+  if (!lista || lista.length === 0) {
+    document.getElementById('nessun-scordarello').style.display      = 'block';
+    document.getElementById('risultati-scordarelli').style.display   = 'none';
+    return;
+  }
+
+  document.getElementById('contatore-scordarelli').innerText =
+    `${lista.length} scordarell${lista.length === 1 ? 'o' : 'i'} trovat${lista.length === 1 ? 'o' : 'i'}`;
+
+  const tbody = document.getElementById('tbody-scordarelli');
+  tbody.innerHTML = '';
+
+  lista.forEach(r => {
+    const partecipanti = r.adulti + r.bambini + r.infanti;
+    const dataIscrizione = r.dataIscrizione || '—';
+
+    const tr  = document.createElement('tr');
+    tr.id     = `riga-sc-${r.codiceBonifico}`;
+    tr.innerHTML = `
+      <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
+      <td>${r.nome}</td>
+      <td>${r.cognome}</td>
+      <td>${r.email}</td>
+      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
+      <td>${r.menu1}</td>
+      <td>${r.menu2}</td>
+      <td>${r.birre}</td>
+      <td class="totale">€ ${Number(r.prezzo).toFixed(2)}</td>
+      <td class="data-iscrizione">${dataIscrizione}</td>
+      <td>
+        <div class="cell-actions">
+          <button
+            class="btn-delete"
+            id="btn-sc-${r.codiceBonifico}"
+            onclick="cancellaPrenotazione('${r.codiceTitolare}', '${r.codiceBonifico}', this)">
+            🗑 Cancella
+          </button>
+          <button
+            class="btn-issue"
+            id="btn-sc-issue-${r.codiceBonifico}"
+            onclick="openMailModalSollecito('${r.email}', '${r.nome}', '${r.codiceBonifico}', this)">
+            Sollecita
+          </button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('risultati-scordarelli').style.display = 'block';
+}
+
+
+// =====================
+// CANCELLA PRENOTAZIONE
+// =====================
+function cancellaPrenotazione(codiceTitolare, codiceBonifico, btn) {
+  openConfirmModal(
+    `Stai per <strong>cancellare definitivamente</strong> la prenotazione per il codice <strong>${codiceBonifico}</strong>. Questa operazione non è reversibile. Continuare?`,
+    () => {
+      btn.disabled  = true;
+      btn.innerText = '⏳ Annullo...';
+      document.getElementById('loading-overlay').style.display = 'flex';
+
+      apiCall({ action: 'cancellaPrenotazione', formData: { codiceTitolare, codiceBonifico } })
+        .then(res => esitoAnnullamento(res, codiceBonifico, btn))
+        .catch(err => {
+          if (err !== 'auth') console.error(err);
+          btn.disabled  = false;
+          btn.innerText = '🗑 Cancella';
+        })
+        .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+    },
+    { icon: '🗑️', title: 'Cancella Prenotazione' }
+  );
+}
+
+function esitoAnnullamento(risposta, codiceBonifico, btn) {
+  if (risposta.esito === 'OK') {
+    btn.innerText = '✅ Cancellata';
+    btn.classList.add('confermato');
+    const riga = document.getElementById(`riga-sc-${codiceBonifico}`);
+    if (riga) riga.classList.add('annullata');
+    const btnIssue = document.getElementById(`btn-sc-issue-${codiceBonifico}`);
+    if (btnIssue) btnIssue.style.display = 'none';
+  } else {
+    btn.disabled  = false;
+    btn.innerText = '🗑 Cancella';
+    alert('❌ Errore: ' + risposta.messaggio);
+  }
+}
+
+
+// =====================
+// MAIL SOLLECITO
+// =====================
+function openMailModalSollecito(email, nome, codiceBonifico, btn) {
+  const codiceFormattato = formatCodiceEmail(codiceBonifico);
+  document.getElementById('modalEmail').value   = email;
+  document.getElementById('modalSubject').value = `AMA - Festa 2026 - Sollecito pagamento - ${codiceFormattato}`;
+  document.getElementById('modalBody').value    =
+`Ciao ${nome},
+
+ti scriviamo perché la tua iscrizione alla festa "Le Mille e Una Notte 2026" risulta ancora in attesa di pagamento.
+
+Ti ricordiamo che il pagamento dovrà essere effettuato tramite bonifico bancario utilizzando il tuo codice personale: ${codiceFormattato}.
+
+Se non riceveremo conferma del pagamento a breve, saremo purtroppo costretti ad annullare la tua prenotazione per lasciare spazio ad altri partecipanti in lista d'attesa.
+
+Se hai già effettuato il pagamento, ti chiediamo di ignorare questa email.
+
+Per qualsiasi informazione non esitare a rispondere a questa email.
+
+A presto,
+Lo staff AMA San Donato`;
+  document.getElementById('mailModal').style.display = 'flex';
 }
