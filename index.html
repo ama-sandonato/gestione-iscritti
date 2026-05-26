@@ -51,82 +51,147 @@
   <div class="main-card" id="main-card">
 
     <h1 class="page-title">Le Mille e Una Notte 2026</h1>
-    <p class="page-subtitle">💰 Gestione Pagamenti 💰</p>
 
-    <!-- Area di ricerca -->
-    <div class="search-area">
+    <!-- Tab navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-btn-pagamenti" onclick="showTab('pagamenti')">💰 Validazione Pagamenti</button>
+      <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">⏰ Scordarelli</button>
+    </div>
 
-      <!-- Ricerca per codice AMA -->
-      <div class="search-box">
-        <label>🏦 Codice Bonifico</label>
-        <div class="input-ama-wrapper">
-          <span class="prefisso-ama">AMA</span>
-          <input
-            id="input-ama"
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]{3}"
-            maxlength="3"
-            onkeyup="this.value = this.value.replace(/[^0-9]/g, '')"
-            placeholder="000"
-            onkeydown="onKeydown(event, 'ama')"
-            autocomplete="off"
-          >
-          <button class="btn-conferma" onclick="cerca('codiceBonifico', document.getElementById('input-ama').value.trim())">Cerca</button>
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Validazione Pagamenti                 -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-pagamenti">
+
+      <p class="page-subtitle">💰 Gestione Pagamenti 💰</p>
+
+      <!-- Area di ricerca -->
+      <div class="search-area">
+
+        <!-- Ricerca per codice AMA -->
+        <div class="search-box">
+          <label>🏦 Codice Bonifico</label>
+          <div class="input-ama-wrapper">
+            <span class="prefisso-ama">AMA</span>
+            <input
+              id="input-ama"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{3}"
+              maxlength="3"
+              onkeyup="this.value = this.value.replace(/[^0-9]/g, '')"
+              placeholder="000"
+              onkeydown="onKeydown(event, 'ama')"
+              autocomplete="off"
+            >
+            <button class="btn-conferma" onclick="cerca('codiceBonifico', document.getElementById('input-ama').value.trim())">Cerca</button>
+          </div>
+        </div>
+
+        <!-- Ricerca fulltext -->
+        <div class="search-box">
+          <label>🔍 Ricerca libera (nome, cognome, email)</label>
+          <div class="input-ama-wrapper">
+            <input
+              type="text"
+              id="input-fulltext"
+              placeholder="Digita almeno 3 caratteri..."
+              onkeydown="onKeydown(event, 'fulltext')"
+              autocomplete="off"
+              style="border-radius:0;"
+            >
+            <button class="btn-conferma" onclick="cerca('fulltext', document.getElementById('input-fulltext').value.trim())">Cerca</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Nessun risultato -->
+      <div id="nessun-risultato">🔍 Nessun iscritto trovato per il criterio di ricerca inserito.</div>
+
+      <!-- Risultati -->
+      <div id="risultati">
+        <div id="contatore"></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Codice Bonifico</th>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Email</th>
+                <th>Partecipanti</th>
+                <th>Menu 1</th>
+                <th>Menu 2</th>
+                <th>Birre</th>
+                <th>Totale</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Ricerca fulltext -->
-      <div class="search-box">
-        <label>🔍 Ricerca libera (nome, cognome, email)</label>
-        <div class="input-ama-wrapper">
-          <input
-            type="text"
-            id="input-fulltext"
-            placeholder="Digita almeno 3 caratteri..."
-            onkeydown="onKeydown(event, 'fulltext')"
-            autocomplete="off"
-            style="border-radius:0;"
-          >
-          <button class="btn-conferma" onclick="cerca('fulltext', document.getElementById('input-fulltext').value.trim())">Cerca</button>
+    </div><!-- /tab-pagamenti -->
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Scordarelli                           -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-scordarelli" style="display:none;">
+
+      <p class="page-subtitle">⏰ Iscritti senza pagamento</p>
+
+      <!-- Filtro giorni -->
+      <div class="scordarelli-filter">
+        <label>Mostra iscritti in attesa da almeno</label>
+        <div class="scordarelli-filter-row">
+          <select id="select-giorni">
+            <option value="1">1 giorno</option>
+            <option value="3" selected>3 giorni</option>
+            <option value="5">5 giorni</option>
+            <option value="7">7 giorni</option>
+          </select>
+          <button class="btn-conferma" onclick="loadOverdueRegistrants()">Carica elenco</button>
         </div>
       </div>
 
-    </div>
+      <!-- Nessun risultato -->
+      <div id="nessun-scordarello" style="display:none;">🎉 Nessuno scordarello trovato! Tutti hanno pagato nei tempi.</div>
 
-    <!-- Nessun risultato -->
-    <div id="nessun-risultato">🔍 Nessun iscritto trovato per il criterio di ricerca inserito.</div>
-
-    <!-- Risultati -->
-    <div id="risultati">
-      <div id="contatore"></div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Codice Bonifico</th>
-              <th>Nome</th>
-              <th>Cognome</th>
-              <th>Email</th>
-              <th>Partecipanti</th>
-              <th>Menu 1</th>
-              <th>Menu 2</th>
-              <th>Birre</th>
-              <th>Totale</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+      <!-- Risultati -->
+      <div id="risultati-scordarelli" style="display:none;">
+        <div id="contatore-scordarelli"></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Codice Bonifico</th>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Email</th>
+                <th>Partecipanti</th>
+                <th>Menu 1</th>
+                <th>Menu 2</th>
+                <th>Birre</th>
+                <th>Totale</th>
+                <th>Iscritto il</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-scordarelli"></tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+    </div><!-- /tab-scordarelli -->
 
   </div><!-- /main-card -->
 
   <!-- Modale conferma pagamento -->
   <div id="confirmModal" class="modal-confirm">
     <div class="modal-confirm-maindiv">
-      <div class="modal-confirm-icon">💳</div>
+      <div class="modal-confirm-icon" id="confirmModalIcon">💳</div>
       <h3 id="confirmModalTitle">Conferma Pagamento</h3>
       <p id="confirmModalText"></p>
       <div class="modal-footer">
