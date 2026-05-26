@@ -147,14 +147,12 @@
         <label>Mostra iscritti in attesa da almeno</label>
         <div class="scordarelli-filter-row">
           <select id="select-giorni">
-            <option value="3">3 giorni</option>
+            <option value="1">1 giorno</option>
+            <option value="3" selected>3 giorni</option>
             <option value="5">5 giorni</option>
-            <option value="7" selected>7 giorni</option>
-            <option value="10">10 giorni</option>
-            <option value="15">15 giorni</option>
-            <option value="30">30 giorni</option>
+            <option value="7">7 giorni</option>
           </select>
-          <button class="btn-conferma" onclick="caricaScordarelli()">Carica elenco</button>
+          <button class="btn-conferma" onclick="loadOverdueRegistrants()">Carica elenco</button>
         </div>
       </div>
 

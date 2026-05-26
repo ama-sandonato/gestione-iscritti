@@ -466,22 +466,22 @@ function showTab(tab) {
 
 
 // =====================
-// SCORDARELLI
+// OVERDUE REGISTRANTS
 // =====================
-function caricaScordarelli() {
+function loadOverdueRegistrants() {
   const giorni = document.getElementById('select-giorni').value;
 
   document.getElementById('loading-overlay').style.display          = 'flex';
   document.getElementById('risultati-scordarelli').style.display    = 'none';
   document.getElementById('nessun-scordarello').style.display       = 'none';
 
-  apiCall({ action: 'getScordarelli', formData: { giorni: Number(giorni) } })
-    .then(res => mostraScordarelli(res))
+  apiCall({ action: 'findOverdueRegistrants', formData: { giorni: Number(giorni) } })
+    .then(res => showOverdueRegistrants(res))
     .catch(err => { if (err !== 'auth') console.error(err); })
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
 }
 
-function mostraScordarelli(lista) {
+function showOverdueRegistrants(lista) {
   if (!lista || lista.length === 0) {
     document.getElementById('nessun-scordarello').style.display      = 'block';
     document.getElementById('risultati-scordarelli').style.display   = 'none';

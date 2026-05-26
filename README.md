@@ -73,11 +73,11 @@ Per ogni risultato è possibile:
 | `esitoPagamento(risposta, codiceBonifico, btn)` | Aggiorna la riga dopo la conferma |
 | `onKeydown(event, tipo)` | Gestisce Enter nei campi di ricerca |
 
-### Scordarelli
+### Overdue Registrants
 | Funzione | Descrizione |
 |---|---|
-| `caricaScordarelli()` | Chiama API `getScordarelli` con i giorni selezionati |
-| `mostraScordarelli(lista)` | Renderizza la tabella degli scordarelli |
+| `loadOverdueRegistrants()` | Chiama API `findOverdueRegistrants` con i giorni selezionati |
+| `showOverdueRegistrants(lista)` | Renderizza la tabella degli iscritti morosi |
 | `cancellaPrenotazione(codiceTitolare, codiceBonifico, btn)` | Apre modale e chiama API `cancellaPrenotazione` |
 | `esitoAnnullamento(risposta, codiceBonifico, btn)` | Segna la riga come annullata (barrato + grigio) |
 | `openMailModalSollecito(email, nome, codiceBonifico, btn)` | Apre la modale email con testo sollecito preimpostato |
@@ -125,5 +125,5 @@ Per ogni risultato è possibile:
 | `autocompleteFulltext` | Pagamenti | Ricerca libera |
 | `confirmPayment` | Pagamenti | Conferma pagamento |
 | `sendIssueMail` | Entrambe | Invio email (segnalazione e sollecito) |
-| `getScordarelli` | Scordarelli | Lista iscritti senza pagamento da N giorni |
+| `findOverdueRegistrants` | Scordarelli | Lista iscritti senza pagamento da N giorni |
 | `cancellaPrenotazione` | Scordarelli | Cancellazione definitiva prenotazione |
