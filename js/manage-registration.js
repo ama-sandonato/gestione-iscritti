@@ -384,22 +384,21 @@ function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
   const codiceFormattato = formatCodiceEmail(codiceBonifico);
   const importoAtteso    = Number(prezzo).toFixed(2);
   document.getElementById('modalEmail').value   = email;
-  document.getElementById('modalSubject').value = `AMA - Festa 2026 - Verifica importo bonifico - ${codiceFormattato}`;
+  document.getElementById('modalSubject').value = `Verifica importo bonifico - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').value    =
 `Ciao ${nomeUtente},
-
 ti scriviamo in merito alla tua iscrizione alla festa "Le Mille e Una Notte 2026".
+Controllando il pagamento associato alla tua causale personale (${codiceFormattato}), abbiamo notato una differenza tra l'importo previsto e quello ricevuto.
 
-Verificando il pagamento associato al tuo codice personale (${codiceFormattato}), abbiamo riscontrato una differenza tra l'importo atteso e quello ricevuto sul nostro conto.
+In base alla tua prenotazione, la quota corretta da versare risulta essere di €${importoAtteso}.
 
-In base alla tua prenotazione, l'importo corretto da versare è di € ${importoAtteso}.
+Ti chiediamo gentilmente di verificare il bonifico effettuato e, se necessario, di procedere con un versamento integrativo della differenza. Se invece pensi possa esserci un errore o hai già effettuato il pagamento corretto, rispondi pure a questa email allegando la ricevuta del bonifico: verificheremo insieme la situazione.
 
-Ti chiediamo gentilmente di verificare il bonifico effettuato e, qualora fosse necessario, di procedere con un versamento integrativo per la differenza. In alternativa, se ritieni che ci sia un errore da parte nostra, ti invitiamo a rispondere a questa email allegando la ricevuta del bonifico così da poter verificare insieme.
+Ci scusiamo per il disturbo e restiamo a disposizione per qualsiasi dubbio o chiarimento.
+Grazie per la collaborazione.
 
-Ci scusiamo per il disturbo e restiamo a tua completa disposizione per qualsiasi chiarimento.
-
-A presto,
-Lo staff AMA San Donato`;
+Un caro saluto,
+AMA Crew`;
   document.getElementById('mailModal').style.display = 'flex';
 }
 
@@ -522,7 +521,7 @@ function showOverdueRegistrants(lista) {
           <button
             class="btn-issue"
             id="btn-sc-issue-${r.codiceBonifico}"
-            onclick="openMailModalSollecito('${r.email}', '${r.nome}', '${r.codiceBonifico}', this)">
+            onclick="openMailModalSollecito('${r.email}', '${r.nome}', '${r.codiceBonifico}', '${r.prezzo}', this)">
             Sollecita
           </button>
         </div>
@@ -578,24 +577,23 @@ function esitoAnnullamento(risposta, codiceBonifico, btn) {
 // =====================
 // MAIL SOLLECITO
 // =====================
-function openMailModalSollecito(email, nome, codiceBonifico, btn) {
+function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   const codiceFormattato = formatCodiceEmail(codiceBonifico);
+  const importoAtteso    = Number(prezzo).toFixed(2);
   document.getElementById('modalEmail').value   = email;
-  document.getElementById('modalSubject').value = `AMA - Festa 2026 - Sollecito pagamento - ${codiceFormattato}`;
+  document.getElementById('modalSubject').value = `Sollecito pagamento - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').value    =
 `Ciao ${nome},
+ti contattiamo perché non abbiamo ancora ricevuto il pagamento per confermare la tua iscrizione alla festa "Le Mille e Una Notte 2026" del 19 settembre prossimo.
 
-ti scriviamo perché la tua iscrizione alla festa "Le Mille e Una Notte 2026" risulta ancora in attesa di pagamento.
+Ti ricordiamo che il versamento della quota di €${importoAtteso} dovrà essere effettuato tramite bonifico bancario, inserendo questa specifica causale:
+${codiceFormattato}
 
-Ti ricordiamo che il pagamento dovrà essere effettuato tramite bonifico bancario utilizzando il tuo codice personale: ${codiceFormattato}.
+Per aiutarci nell'organizzazione della serata e permettere una corretta gestione delle richieste ricevute, ti chiediamo gentilmente di effettuare il pagamento il prima possibile. In assenza di conferma, saremo costretti a liberare il posto per consentire ad altre famiglie attualmente in lista d'attesa di partecipare.
 
-Se non riceveremo conferma del pagamento a breve, saremo purtroppo costretti ad annullare la tua prenotazione per lasciare spazio ad altri partecipanti in lista d'attesa.
+Se invece hai già effettuato il pagamento, ti chiediamo semplicemente di rispondere a questa email indicando gli estremi del bonifico, così da poter verificare insieme.
 
-Se hai già effettuato il pagamento, ti chiediamo di ignorare questa email.
-
-Per qualsiasi informazione non esitare a rispondere a questa email.
-
-A presto,
-Lo staff AMA San Donato`;
+Grazie,
+AMA Crew`;
   document.getElementById('mailModal').style.display = 'flex';
 }

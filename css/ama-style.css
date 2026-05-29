@@ -447,6 +447,12 @@ tr.pagata td { background: rgba(46,125,50,0.07) !important; }
   border-color: var(--primary-orange);
   background: white;
 }
+.modal-issue-email-maindiv input[readonly] {
+  background: rgba(0,0,0,0.05);
+  color: #999;
+  cursor: default;
+  user-select: none;
+}
 .modal-issue-email-maindiv textarea { height: 360px; resize: vertical; max-width: 100%; max-height: 60vh; }
 
 .modal-footer {
