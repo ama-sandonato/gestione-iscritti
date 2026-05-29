@@ -383,6 +383,7 @@ function formatCodiceEmail(codice) {
 function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
   const codiceFormattato = formatCodiceEmail(codiceBonifico);
   const importoAtteso    = Number(prezzo).toFixed(2);
+  document.getElementById('modalTitle').innerHTML = '&#128231; Invia Segnalazione';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Verifica importo bonifico - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').value    =
@@ -580,6 +581,7 @@ function esitoAnnullamento(risposta, codiceBonifico, btn) {
 function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   const codiceFormattato = formatCodiceEmail(codiceBonifico);
   const importoAtteso    = Number(prezzo).toFixed(2);
+  document.getElementById('modalTitle').innerHTML = '&#128231; Invia Sollecito';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Sollecito pagamento - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').value    =
