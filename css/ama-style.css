@@ -424,6 +424,66 @@ tr.pagata td { background: rgba(46,125,50,0.07) !important; }
   border-color: var(--primary-orange);
 }
 
+/* STATUS FOOTER */
+#status-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  background: var(--deep-blue);
+  color: #fff;
+  display: none;
+  align-items: center;
+  padding: 0 16px;
+  gap: 0;
+  font-size: 12px;
+  z-index: 1000;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+}
+#status-footer.visible { display: flex; }
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+.stat-icon { font-size: 13px; }
+.stat-label { opacity: 0.7; }
+.stat-value {
+  font-weight: 600;
+  color: #fff;
+}
+.stat-value.warn  { color: #FFD166; }
+.stat-value.alert { color: #EF4444; }
+.stat-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255,255,255,0.2);
+}
+.stat-spacer { flex: 1; }
+.stat-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.6;
+  font-size: 11px;
+}
+.stat-refresh-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.stat-refresh-btn:hover { opacity: 1; }
+.main-card { padding-bottom: 48px; }
+
 /* MODALE EMAIL */
 .modal-issue-email {
   display: none;
