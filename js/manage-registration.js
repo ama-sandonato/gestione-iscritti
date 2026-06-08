@@ -30,6 +30,8 @@ function showMainCard() {
   document.getElementById('user-header').style.display   = 'flex';
   document.getElementById('user-header-name').innerText  = getUser();
   showTab('pagamenti');
+  loadDashboardStats();
+  startStatsPolling();
 }
 
 // Eseguito al caricamento della pagina
@@ -350,6 +352,7 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
     if (riga) riga.classList.add("pagata");
     const btnIssue = document.getElementById(`btn-issue-${codiceBonifico}`);
     if (btnIssue) btnIssue.style.display = 'none';
+    loadDashboardStats();
   } else {
     btn.disabled  = false;
     btn.innerText = "✓ Conferma Pagamento";
@@ -596,6 +599,7 @@ function esitoAnnullamento(risposta, codiceBonifico, btn) {
     if (riga) riga.classList.add('annullata');
     const btnIssue = document.getElementById(`btn-sc-issue-${codiceBonifico}`);
     if (btnIssue) btnIssue.style.display = 'none';
+    loadDashboardStats();
   } else {
     btn.disabled  = false;
     btn.innerText = '🗑 Cancella';
@@ -627,4 +631,54 @@ Se invece hai già effettuato il pagamento, ti chiediamo semplicemente di rispon
 Grazie,
 AMA Crew`;
   document.getElementById('mailModal').style.display = 'flex';
+}
+
+
+// =====================
+// STATUS FOOTER
+// =====================
+const STATS_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minuti
+let _statsTimer = null;
+
+function startStatsPolling() {
+  if (_statsTimer) clearInterval(_statsTimer);
+  _statsTimer = setInterval(loadDashboardStats, STATS_REFRESH_INTERVAL_MS);
+}
+
+function loadDashboardStats() {
+  apiCall({ action: 'getDashboardStats' })
+    .then(stats => renderDashboardStats(stats))
+    .catch(err => { if (err !== 'auth') console.warn('stats error', err); });
+}
+
+function renderDashboardStats(s) {
+  document.getElementById('status-footer').classList.add('visible');
+
+  _setStatVal('stat-pending-val', s.utentiDaApprovare,
+    s.utentiDaApprovare > 0 ? 'warn' : '');
+
+  _setStatVal('stat-totale-val', s.partecipantiTotali, '');
+
+  const m1pct = s.menu1Max > 0 ? s.menu1Rimanenti / s.menu1Max : 1;
+  _setStatVal('stat-menu1-val', `${s.menu1Rimanenti} / ${s.menu1Max}`,
+    m1pct < 0.1 ? 'alert' : m1pct < 0.25 ? 'warn' : '');
+
+  const m2pct = s.menu2Max > 0 ? s.menu2Rimanenti / s.menu2Max : 1;
+  _setStatVal('stat-menu2-val', `${s.menu2Rimanenti} / ${s.menu2Max}`,
+    m2pct < 0.1 ? 'alert' : m2pct < 0.25 ? 'warn' : '');
+
+  _setStatVal('stat-birre-val', `${s.birreBoccali} boc. (${s.birreLitri} L)`, '');
+
+  _setStatVal('stat-email-val', s.emailQuota,
+    s.emailQuota < 20 ? 'alert' : s.emailQuota < 50 ? 'warn' : '');
+
+  const now = new Date();
+  document.getElementById('stat-last-update').innerText =
+    `Agg. ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function _setStatVal(id, value, cssClass) {
+  const el = document.getElementById(id);
+  el.innerText  = value;
+  el.className  = 'stat-value' + (cssClass ? ' ' + cssClass : '');
 }
