@@ -539,24 +539,53 @@ function showOverdueRegistrants(lista) {
 // CANCELLA PRENOTAZIONE
 // =====================
 function cancellaPrenotazione(codiceTitolare, codiceBonifico, btn) {
-  openConfirmModal(
-    `Stai per <strong>cancellare definitivamente</strong> la prenotazione per il codice <strong>${codiceBonifico}</strong>. Questa operazione non è reversibile. Continuare?`,
-    () => {
-      btn.disabled  = true;
-      btn.innerText = '⏳ Annullo...';
-      document.getElementById('loading-overlay').style.display = 'flex';
+  // reset radio buttons e campo Altro
+  document.querySelectorAll('input[name="motivo"]').forEach(r => r.checked = false);
+  document.getElementById('motivo-altro-container').style.display = 'none';
+  document.getElementById('motivo-altro-text').value = '';
+  document.getElementById('cancelModalText').innerHTML =
+    `Stai per <strong>cancellare definitivamente</strong> la prenotazione per il codice <strong>${codiceBonifico}</strong>.<br>Questa operazione non è reversibile.`;
 
-      apiCall({ action: 'cancellaPrenotazione', formData: { codiceTitolare, codiceBonifico } })
-        .then(res => esitoAnnullamento(res, codiceBonifico, btn))
-        .catch(err => {
-          if (err !== 'auth') console.error(err);
-          btn.disabled  = false;
-          btn.innerText = '🗑 Cancella';
-        })
-        .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
-    },
-    { icon: '🗑️', title: 'Cancella Prenotazione' }
-  );
+  // mostra/nascondi campo testo Altro al cambio selezione
+  document.querySelectorAll('input[name="motivo"]').forEach(r => {
+    r.onchange = () => {
+      document.getElementById('motivo-altro-container').style.display =
+        r.value === 'Altro' && r.checked ? 'block' : 'none';
+    };
+  });
+
+  const modal = document.getElementById('cancelModal');
+  modal.style.display = 'flex';
+
+  document.getElementById('cancelModalOkBtn').onclick = () => {
+    const motivoSelezionato = document.querySelector('input[name="motivo"]:checked')?.value;
+    if (!motivoSelezionato) { alert('Seleziona un motivo per la cancellazione.'); return; }
+
+    let motivo = motivoSelezionato;
+    if (motivoSelezionato === 'Altro') {
+      const altroText = document.getElementById('motivo-altro-text').value.trim();
+      if (!altroText) { alert('Specifica il motivo per la scelta "Altro".'); return; }
+      motivo = `Altro: ${altroText}`;
+    }
+
+    closeCancelModal();
+    btn.disabled  = true;
+    btn.innerText = '⏳ Annullo...';
+    document.getElementById('loading-overlay').style.display = 'flex';
+
+    apiCall({ action: 'cancellaPrenotazione', formData: { codiceTitolare, codiceBonifico, motivo } })
+      .then(res => esitoAnnullamento(res, codiceBonifico, btn))
+      .catch(err => {
+        if (err !== 'auth') console.error(err);
+        btn.disabled  = false;
+        btn.innerText = '🗑 Cancella';
+      })
+      .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+  };
+}
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').style.display = 'none';
 }
 
 function esitoAnnullamento(risposta, codiceBonifico, btn) {

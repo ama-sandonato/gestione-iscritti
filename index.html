@@ -201,6 +201,29 @@
     </div>
   </div>
 
+  <!-- Modale cancellazione prenotazione -->
+  <div id="cancelModal" class="modal-confirm">
+    <div class="modal-confirm-maindiv">
+      <div class="modal-confirm-icon">🗑️</div>
+      <h3>Cancella Prenotazione</h3>
+      <p id="cancelModalText"></p>
+      <div class="cancel-motivo">
+        <p><strong>Seleziona il motivo della cancellazione:</strong></p>
+        <label class="radio-label"><input type="radio" name="motivo" value="Pagamento mai ricevuto"> Pagamento mai ricevuto</label>
+        <label class="radio-label"><input type="radio" name="motivo" value="Richiesta dell'iscritto"> Richiesta dell'iscritto</label>
+        <label class="radio-label"><input type="radio" name="motivo" value="Prenotazione duplicata"> Prenotazione duplicata</label>
+        <label class="radio-label"><input type="radio" name="motivo" value="Altro"> Altro</label>
+        <div id="motivo-altro-container" style="display:none; margin-top:6px;">
+          <input type="text" id="motivo-altro-text" class="motivo-altro-input" placeholder="Specifica il motivo...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeCancelModal()">Annulla</button>
+        <button class="btn-conferma" id="cancelModalOkBtn">Conferma cancellazione</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modale email segnalazione -->
   <div id="mailModal" class="modal-issue-email">
     <div class="modal-issue-email-maindiv">
