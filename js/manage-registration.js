@@ -773,8 +773,7 @@ let _ripristinoCallback = null;
 
 function apriRipristinoModal(codiceTitolare, codiceBonifico, nome, cognome, menu1, menu2, btn) {
   document.getElementById('ripristinoModalText').innerHTML =
-    `Stai per ripristinare la prenotazione di <strong>${nome} ${cognome}</strong> (${codiceBonifico}).<br>
-     L'iscritto torner&#224; allo stato <em>Registrazione OK</em>.`;
+    `Stai per ripristinare la prenotazione di <strong>${nome} ${cognome}</strong> (${codiceBonifico}). L'iscritto torner&#224; allo stato <em>Registrazione OK</em>.`;
 
   const warningDiv  = document.getElementById('ripristino-overbooking-warning');
   const warningText = document.getElementById('ripristino-warning-text');
@@ -783,8 +782,8 @@ function apriRipristinoModal(codiceTitolare, codiceBonifico, nome, cognome, menu
   if (_lastStats) {
     const m1dopo = _lastStats.menu1Rimanenti - menu1;
     const m2dopo = _lastStats.menu2Rimanenti - menu2;
-    if (m1dopo < 0) righe.push(`Menu 1: rimanenti ${_lastStats.menu1Rimanenti} &#8594; <strong>${m1dopo}</strong>`);
-    if (m2dopo < 0) righe.push(`Menu 2: rimanenti ${_lastStats.menu2Rimanenti} &#8594; <strong>${m2dopo}</strong>`);
+    if (m1dopo < 0) righe.push(`Menu 1: Rimanenti ${_lastStats.menu1Rimanenti} &mdash; Richiesti ${menu1} &#8594; <strong>${-m1dopo} in Overbooking</strong>`);
+    if (m2dopo < 0) righe.push(`Menu 2: Rimanenti ${_lastStats.menu2Rimanenti} &mdash; Richiesti ${menu2} &#8594; <strong>${-m2dopo} in Overbooking</strong>`);
   }
 
   if (righe.length > 0) {
