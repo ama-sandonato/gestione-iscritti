@@ -635,6 +635,22 @@ AMA Crew`;
 
 
 // =====================
+// PENDING PAYMENTS SHORTCUT
+// =====================
+function openPendingPayments() {
+  showTab('pagamenti');
+  document.getElementById('loading-overlay').style.display = 'flex';
+  document.getElementById('risultati').style.display       = 'none';
+  document.getElementById('nessun-risultato').style.display = 'none';
+
+  apiCall({ action: 'findAllPendingPayments' })
+    .then(res => mostraRisultati(res))
+    .catch(err => { if (err !== 'auth') console.error(err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+}
+
+
+// =====================
 // STATUS FOOTER
 // =====================
 const STATS_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minuti
