@@ -105,6 +105,9 @@ function logout() {
   document.getElementById('tbody-scordarelli').innerHTML           = '';
   document.getElementById('risultati-scordarelli').style.display   = 'none';
   document.getElementById('nessun-scordarello').style.display      = 'none';
+  document.getElementById('tbody-cancellati').innerHTML            = '';
+  document.getElementById('risultati-cancellati').style.display    = 'none';
+  document.getElementById('nessun-cancellato').style.display       = 'none';
   showLoginCard();
 }
 
@@ -461,10 +464,12 @@ function confirmSendMail(btn) {
 // TAB NAVIGATION
 // =====================
 function showTab(tab) {
-  document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'    ? 'block' : 'none';
-  document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli'  ? 'block' : 'none';
+  document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'   ? 'block' : 'none';
+  document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli' ? 'block' : 'none';
+  document.getElementById('tab-cancellati').style.display   = tab === 'cancellati'  ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',   tab === 'pagamenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active', tab === 'scordarelli');
+  document.getElementById('tab-btn-cancellati').classList.toggle('active',  tab === 'cancellati');
 }
 
 
@@ -655,6 +660,7 @@ function openPendingPayments() {
 // =====================
 const STATS_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minuti
 let _statsTimer = null;
+let _lastStats  = null;
 
 function startStatsPolling() {
   if (_statsTimer) clearInterval(_statsTimer);
@@ -668,6 +674,7 @@ function loadDashboardStats() {
 }
 
 function renderDashboardStats(s) {
+  _lastStats = s;
   document.getElementById('status-footer').classList.add('visible');
 
   _setStatVal('stat-pending-val', s.utentiDaApprovare,
@@ -697,4 +704,129 @@ function _setStatVal(id, value, cssClass) {
   const el = document.getElementById(id);
   el.innerText  = value;
   el.className  = 'stat-value' + (cssClass ? ' ' + cssClass : '');
+}
+
+
+// =====================
+// CANCELLATI
+// =====================
+function loadCancellati() {
+  document.getElementById('loading-overlay').style.display       = 'flex';
+  document.getElementById('risultati-cancellati').style.display  = 'none';
+  document.getElementById('nessun-cancellato').style.display     = 'none';
+
+  apiCall({ action: 'findCancellati' })
+    .then(res => showCancellati(res))
+    .catch(err => { if (err !== 'auth') console.error(err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+}
+
+function showCancellati(lista) {
+  if (!lista || lista.length === 0) {
+    document.getElementById('nessun-cancellato').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('contatore-cancellati').innerText =
+    `${lista.length} prenotazion${lista.length === 1 ? 'e cancellata' : 'i cancellate'}`;
+
+  const tbody = document.getElementById('tbody-cancellati');
+  tbody.innerHTML = '';
+
+  lista.forEach(r => {
+    const partecipanti = r.adulti + r.bambini + r.infanti;
+    const tr  = document.createElement('tr');
+    tr.id     = `riga-can-${r.codiceBonifico}`;
+    tr.innerHTML = `
+      <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
+      <td>${r.nome}</td>
+      <td>${r.cognome}</td>
+      <td>${r.email}</td>
+      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
+      <td>${r.menu1}</td>
+      <td>${r.menu2}</td>
+      <td>${r.birre}</td>
+      <td class="totale">&#8364; ${Number(r.prezzo).toFixed(2)}</td>
+      <td class="motivo-cell">${r.motivoCancellazione || '&#8212;'}</td>
+      <td class="data-gestione">${r.dataGestione || '&#8212;'}</td>
+      <td>${r.operatore || '&#8212;'}</td>
+      <td>
+        <button
+          class="btn-restore"
+          id="btn-can-${r.codiceBonifico}"
+          onclick="apriRipristinoModal('${r.codiceTitolare}', '${r.codiceBonifico}', '${r.nome}', '${r.cognome}', ${r.menu1}, ${r.menu2}, this)">
+          &#128260; Ripristina
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('risultati-cancellati').style.display = 'block';
+}
+
+
+// =====================
+// RIPRISTINO PRENOTAZIONE
+// =====================
+let _ripristinoCallback = null;
+
+function apriRipristinoModal(codiceTitolare, codiceBonifico, nome, cognome, menu1, menu2, btn) {
+  document.getElementById('ripristinoModalText').innerHTML =
+    `Stai per ripristinare la prenotazione di <strong>${nome} ${cognome}</strong> (${codiceBonifico}).<br>
+     L'iscritto torner&#224; allo stato <em>Registrazione OK</em>.`;
+
+  const warningDiv  = document.getElementById('ripristino-overbooking-warning');
+  const warningText = document.getElementById('ripristino-warning-text');
+  const righe = [];
+
+  if (_lastStats) {
+    const m1dopo = _lastStats.menu1Rimanenti - menu1;
+    const m2dopo = _lastStats.menu2Rimanenti - menu2;
+    if (m1dopo < 0) righe.push(`Menu 1: rimanenti ${_lastStats.menu1Rimanenti} &#8594; <strong>${m1dopo}</strong>`);
+    if (m2dopo < 0) righe.push(`Menu 2: rimanenti ${_lastStats.menu2Rimanenti} &#8594; <strong>${m2dopo}</strong>`);
+  }
+
+  if (righe.length > 0) {
+    warningText.innerHTML = 'Ripristinando questa prenotazione si supereranno i limiti configurati:<br>' + righe.join('<br>');
+    warningDiv.style.display = 'block';
+  } else {
+    warningDiv.style.display = 'none';
+  }
+
+  document.getElementById('ripristinoModal').style.display = 'flex';
+
+  document.getElementById('ripristinoModalOkBtn').onclick = () => {
+    closeRipristinoModal();
+    btn.disabled  = true;
+    btn.innerText = '&#9203; Ripristino...';
+    document.getElementById('loading-overlay').style.display = 'flex';
+
+    apiCall({ action: 'ripristinaPrenotazione', formData: { codiceTitolare, codiceBonifico } })
+      .then(res => esitoRipristino(res, codiceBonifico, btn))
+      .catch(err => {
+        if (err !== 'auth') console.error(err);
+        btn.disabled  = false;
+        btn.innerHTML = '&#128260; Ripristina';
+      })
+      .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+  };
+}
+
+function closeRipristinoModal() {
+  document.getElementById('ripristinoModal').style.display = 'none';
+}
+
+function esitoRipristino(risposta, codiceBonifico, btn) {
+  if (risposta.esito === 'OK') {
+    btn.innerHTML = '&#9989; Ripristinata';
+    btn.classList.add('confermato');
+    const riga = document.getElementById(`riga-can-${codiceBonifico}`);
+    if (riga) riga.classList.add('ripristinata');
+    loadDashboardStats();
+  } else {
+    btn.disabled  = false;
+    btn.innerHTML = '&#128260; Ripristina';
+    alert('&#10060; Errore: ' + risposta.messaggio);
+  }
 }
