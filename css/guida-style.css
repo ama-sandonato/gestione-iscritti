@@ -258,6 +258,7 @@ body {
 }
 .guida-body tr:last-child td { border-bottom: none; }
 .guida-body tr:nth-child(even) td { background: rgba(255,243,233,0.5); }
+.guida-body td:first-child { white-space: nowrap; }
 
 /* ── BLOCKQUOTE (suggerimenti/note) ── */
 .guida-body blockquote {
