@@ -1,4 +1,4 @@
-# Guida Operatore — Backoffice Le Mille e Una Notte 2026
+﻿# Guida Operatore
 
 Questo documento descrive tutte le funzionalità disponibili nel backoffice di gestione iscritti.
 
@@ -182,4 +182,11 @@ Durante ogni operazione verso il backend compare uno spinner sovrapposto alla pa
 - Tutte le operazioni (conferma pagamento, cancellazione, ripristino) vengono registrate nel foglio Excel con data, ora e nome dell'operatore.
 - La barra di stato si aggiorna automaticamente ogni 5 minuti; in caso di operazioni importanti è consigliabile aggiornarla manualmente con **↻**.
 - In caso di sessione scaduta, il sistema reindirizza al login: le operazioni non salvate vengono perse.
-- Per segnalare anomalie o malfunzionamenti contattare il referente tecnico AMA.
+- Per segnalare anomalie o malfunzionamenti fare riferimento alla sezione **Supporto tecnico** in fondo a questa guida.
+
+---
+
+## Supporto tecnico
+
+Per assistenza tecnica sull'applicazione contattare il referente tramite email o WhatsApp.
+
