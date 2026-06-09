@@ -773,7 +773,7 @@ let _ripristinoCallback = null;
 
 function apriRipristinoModal(codiceTitolare, codiceBonifico, nome, cognome, menu1, menu2, btn) {
   document.getElementById('ripristinoModalText').innerHTML =
-    `Stai per ripristinare la prenotazione di <strong>${nome} ${cognome}</strong> (${codiceBonifico}). L'iscritto torner&#224; allo stato <em>Registrazione OK</em>.`;
+    `Stai per ripristinare la prenotazione di:<br><strong>${nome} ${cognome} (${codiceBonifico})</strong><br>L'iscritto torner&#224; allo stato <em>Registrazione OK</em>.`;
 
   const warningDiv  = document.getElementById('ripristino-overbooking-warning');
   const warningText = document.getElementById('ripristino-warning-text');
@@ -787,7 +787,7 @@ function apriRipristinoModal(codiceTitolare, codiceBonifico, nome, cognome, menu
   }
 
   if (righe.length > 0) {
-    warningText.innerHTML = 'Ripristinando questa prenotazione si supereranno i limiti configurati:<br>' + righe.join('<br>');
+    warningText.innerHTML = righe.map(r => `<div class="ripristino-warning-row">${r}</div>`).join('');
     warningDiv.style.display = 'block';
   } else {
     warningDiv.style.display = 'none';

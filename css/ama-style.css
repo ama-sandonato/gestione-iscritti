@@ -815,6 +815,11 @@ tr.ripristinata td { background: rgba(46,125,50,0.07) !important; }
 .btn-restore:disabled { opacity: 0.45; box-shadow: none; transform: none; cursor: not-allowed; }
 .btn-restore.confermato { background: #1565c0; color: white; box-shadow: none; transform: none; cursor: default; }
 
+/* ── RIPRISTINO MODAL — più larga per evitare wrapping ──── */
+#ripristinoModal .modal-confirm-maindiv {
+  width: 540px;
+}
+
 /* ── RIPRISTINO OVERBOOKING WARNING ─────────────────────── */
 .ripristino-warning {
   margin-top: 14px;
@@ -829,7 +834,7 @@ tr.ripristinata td { background: rgba(46,125,50,0.07) !important; }
 .ripristino-warning strong {
   display: block;
   color: #c0392b;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-size: 13px;
 }
 .ripristino-warning p {
@@ -837,6 +842,12 @@ tr.ripristinata td { background: rgba(46,125,50,0.07) !important; }
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
+}
+.ripristino-warning-row {
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--deep-blue);
 }
 
 /* RESPONSIVE */
