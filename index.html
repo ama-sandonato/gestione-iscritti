@@ -13,7 +13,7 @@
   <!-- Header utente loggato -->
   <div class="user-header" id="user-header">
     <span>Benvenuto, <strong id="user-header-name"></strong></span>
-    <button class="btn-logout" onclick="logout()">✕ Esci</button>
+    <button class="btn-logout" onclick="logout()">&#x2715; Esci</button>
   </div>
 
   <!-- Spinner -->
@@ -25,7 +25,7 @@
   <!-- Login card -->
   <div class="login-card" id="login-card">
     <h1 class="page-title">Le Mille e Una Notte 2026</h1>
-    <p class="page-subtitle">🔐 Area Riservata</p>
+    <p class="page-subtitle">&#128272; Area Riservata</p>
 
     <div class="login-error" id="login-error"></div>
 
@@ -38,7 +38,7 @@
       </div>
       <div class="login-field">
         <label>Password</label>
-        <input type="password" id="login-password" placeholder="••••••••"
+        <input type="password" id="login-password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;"
           autocomplete="current-password"
           onkeydown="onLoginKeydown(event)">
       </div>
@@ -54,8 +54,9 @@
 
     <!-- Tab navigation -->
     <div class="tab-nav">
-      <button class="tab-btn active" id="tab-btn-pagamenti" onclick="showTab('pagamenti')">💰 Validazione Pagamenti</button>
-      <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">⏰ Scordarelli</button>
+      <button class="tab-btn active" id="tab-btn-pagamenti" onclick="showTab('pagamenti')">&#128176; Validazione Pagamenti</button>
+      <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">&#9200; Scordarelli</button>
+      <button class="tab-btn" id="tab-btn-cancellati" onclick="showTab('cancellati')">&#128683; Cancellati</button>
     </div>
 
     <!-- ══════════════════════════════════════════ -->
@@ -63,14 +64,14 @@
     <!-- ══════════════════════════════════════════ -->
     <div id="tab-pagamenti">
 
-      <p class="page-subtitle">💰 Gestione Pagamenti 💰</p>
+      <p class="page-subtitle">&#128176; Gestione Pagamenti &#128176;</p>
 
       <!-- Area di ricerca -->
       <div class="search-area">
 
         <!-- Ricerca per codice AMA -->
         <div class="search-box">
-          <label>🏦 Codice Bonifico</label>
+          <label>&#127974; Codice Bonifico</label>
           <div class="input-ama-wrapper">
             <span class="prefisso-ama">AMA</span>
             <input
@@ -90,7 +91,7 @@
 
         <!-- Ricerca fulltext -->
         <div class="search-box">
-          <label>🔍 Ricerca libera (nome, cognome, email)</label>
+          <label>&#128269; Ricerca libera (nome, cognome, email)</label>
           <div class="input-ama-wrapper">
             <input
               type="text"
@@ -107,7 +108,7 @@
       </div>
 
       <!-- Nessun risultato -->
-      <div id="nessun-risultato">🔍 Nessun iscritto trovato per il criterio di ricerca inserito.</div>
+      <div id="nessun-risultato">&#128269; Nessun iscritto trovato per il criterio di ricerca inserito.</div>
 
       <!-- Risultati -->
       <div id="risultati">
@@ -140,7 +141,7 @@
     <!-- ══════════════════════════════════════════ -->
     <div id="tab-scordarelli" style="display:none;">
 
-      <p class="page-subtitle">⏰ Iscritti senza pagamento</p>
+      <p class="page-subtitle">&#9200; Iscritti senza pagamento</p>
 
       <!-- Filtro giorni -->
       <div class="scordarelli-filter">
@@ -157,7 +158,7 @@
       </div>
 
       <!-- Nessun risultato -->
-      <div id="nessun-scordarello" style="display:none;">🎉 Nessuno scordarello trovato! Tutti hanno pagato nei tempi.</div>
+      <div id="nessun-scordarello" style="display:none;">&#127881; Nessuno scordarello trovato! Tutti hanno pagato nei tempi.</div>
 
       <!-- Risultati -->
       <div id="risultati-scordarelli" style="display:none;">
@@ -186,17 +187,60 @@
 
     </div><!-- /tab-scordarelli -->
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Cancellati                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-cancellati" style="display:none;">
+
+      <p class="page-subtitle">&#128683; Prenotazioni Cancellate</p>
+
+      <div class="cancellati-header">
+        <button class="btn-conferma" onclick="loadCancellati()">Carica elenco</button>
+      </div>
+
+      <!-- Nessun risultato -->
+      <div id="nessun-cancellato" style="display:none;">&#9989; Nessuna prenotazione cancellata.</div>
+
+      <!-- Risultati -->
+      <div id="risultati-cancellati" style="display:none;">
+        <div id="contatore-cancellati"></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Codice Bonifico</th>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Email</th>
+                <th>Partecipanti</th>
+                <th>Menu 1</th>
+                <th>Menu 2</th>
+                <th>Birre</th>
+                <th>Totale</th>
+                <th>Motivo</th>
+                <th>Data Canc.</th>
+                <th>Operatore</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cancellati"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-cancellati -->
+
   </div><!-- /main-card -->
 
   <!-- Modale conferma pagamento -->
   <div id="confirmModal" class="modal-confirm">
     <div class="modal-confirm-maindiv">
-      <div class="modal-confirm-icon" id="confirmModalIcon">💳</div>
+      <div class="modal-confirm-icon" id="confirmModalIcon">&#128179;</div>
       <h3 id="confirmModalTitle">Conferma Pagamento</h3>
       <p id="confirmModalText"></p>
       <div class="modal-footer">
         <button class="btn-annulla" onclick="closeConfirmModal()">Annulla</button>
-        <button class="btn-conferma" id="confirmModalOkBtn">✓ Conferma</button>
+        <button class="btn-conferma" id="confirmModalOkBtn">&#10003; Conferma</button>
       </div>
     </div>
   </div>
@@ -204,7 +248,7 @@
   <!-- Modale cancellazione prenotazione -->
   <div id="cancelModal" class="modal-confirm">
     <div class="modal-confirm-maindiv">
-      <div class="modal-confirm-icon">🗑️</div>
+      <div class="modal-confirm-icon">&#128465;&#65039;</div>
       <h3>Cancella Prenotazione</h3>
       <p id="cancelModalText"></p>
       <div class="cancel-motivo">
@@ -220,6 +264,23 @@
       <div class="modal-footer">
         <button class="btn-annulla" onclick="closeCancelModal()">Annulla</button>
         <button class="btn-conferma" id="cancelModalOkBtn">Conferma cancellazione</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale ripristino prenotazione -->
+  <div id="ripristinoModal" class="modal-confirm">
+    <div class="modal-confirm-maindiv">
+      <div class="modal-confirm-icon">&#128260;</div>
+      <h3>Ripristina Prenotazione</h3>
+      <p id="ripristinoModalText"></p>
+      <div id="ripristino-overbooking-warning" class="ripristino-warning" style="display:none;">
+        <strong>&#9888;&#65039; Attenzione — Overbooking</strong>
+        <p id="ripristino-warning-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeRipristinoModal()">Annulla</button>
+        <button class="btn-restore" id="ripristinoModalOkBtn">&#128260; Ripristina</button>
       </div>
     </div>
   </div>
@@ -247,37 +308,37 @@
     <div class="stat-item stat-item-clickable" onclick="openPendingPayments()" title="Apri Validazione Pagamenti">
       <span class="stat-icon">&#9203;</span>
       <span class="stat-label">Da approvare</span>
-      <span class="stat-value" id="stat-pending-val">—</span>
+      <span class="stat-value" id="stat-pending-val">&#8212;</span>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
       <span class="stat-icon">&#128101;</span>
       <span class="stat-label">Partecipanti</span>
-      <span class="stat-value" id="stat-totale-val">—</span>
+      <span class="stat-value" id="stat-totale-val">&#8212;</span>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
       <span class="stat-icon">&#127829;</span>
       <span class="stat-label">Menu 1</span>
-      <span class="stat-value" id="stat-menu1-val">—</span>
+      <span class="stat-value" id="stat-menu1-val">&#8212;</span>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
       <span class="stat-icon">&#127828;</span>
       <span class="stat-label">Menu 2</span>
-      <span class="stat-value" id="stat-menu2-val">—</span>
+      <span class="stat-value" id="stat-menu2-val">&#8212;</span>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
       <span class="stat-icon">&#127866;</span>
       <span class="stat-label">Birre</span>
-      <span class="stat-value" id="stat-birre-val">—</span>
+      <span class="stat-value" id="stat-birre-val">&#8212;</span>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
       <span class="stat-icon">&#128231;</span>
       <span class="stat-label">Email oggi</span>
-      <span class="stat-value" id="stat-email-val">—</span>
+      <span class="stat-value" id="stat-email-val">&#8212;</span>
     </div>
     <div class="stat-spacer"></div>
     <div class="stat-refresh">
