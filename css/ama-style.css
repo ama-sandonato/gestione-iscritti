@@ -942,13 +942,20 @@ th.sortable {
   white-space: nowrap;
   transition: background 0.15s;
 }
-th.sortable:hover  { background: rgba(255,255,255,0.10); }
-th.sortable.sorted { background: rgba(255,255,255,0.20); }
+th.sortable:hover  { background: #133570; }
 .sort-arrow {
   display: inline-block;
   font-size: 0.75em;
   margin-left: 5px;
   vertical-align: middle;
+}
+.sort-hint {
+  display: inline-block;
+  font-size: 0.6em;
+  margin-left: 4px;
+  vertical-align: middle;
+  opacity: 0.45;
+  letter-spacing: -1px;
 }
 
 /* RESPONSIVE */

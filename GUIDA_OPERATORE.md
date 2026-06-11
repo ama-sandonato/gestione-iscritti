@@ -178,7 +178,7 @@ La tabella mostra, per ogni iscritto:
 | **Email** | Indirizzo email dell'iscritto |
 | **Partecipanti** | Totale adulti + bambini + infanti |
 | **Menu 1 / Menu 2 / Birre** | Quantità prenotate |
-| **Totale** | Importo pagato in € |
+| **Data Reg.** | Data di registrazione dell'iscritto |
 
 ### Ricerca
 
@@ -186,13 +186,20 @@ Il campo di testo in alto permette di filtrare l'elenco in tempo reale per nome,
 
 ### Ordinamento colonne
 
-Le intestazioni **Codice Bonifico**, **Cognome** e **Nome** sono cliccabili:
+Le colonne **Codice Bonifico**, **Cognome**, **Nome** e **Data Reg.** sono ordinabili. Ogni intestazione mostra sempre un indicatore visivo:
+
+- **▲▼** (grigio attenuato) — colonna ordinabile ma non attiva
+- **▼** (bianco, sfondo blu) — ordinamento attivo **ascendente** (A→Z, data più vecchia prima)
+- **▲** (bianco, sfondo blu) — ordinamento attivo **discendente** (Z→A, data più recente prima)
+
+All'apertura del tab l'elenco è già in ordine naturale per cognome (A→Z): la colonna **Cognome** mostra **▼** come indicatore dello stato predefinito.
 
 | Click | Effetto |
 |---|---|
-| 1° click | Ordinamento **ascendente** ▲ |
-| 2° click | Ordinamento **discendente** ▼ |
-| 3° click | Ritorno all'**ordine originale** |
+| 1° click su colonna non attiva | Ordinamento **ascendente** ▼ |
+| 2° click sulla stessa colonna | Ordinamento **discendente** ▲ |
+| 3° click sulla stessa colonna | Ritorno all'**ordine originale** |
+| 1° click su **Cognome** (default) | Ordinamento **discendente** ▲ (il primo click inverte l'ordine già attivo) |
 
 L'ordinamento è esclusivo: cliccare su una nuova colonna annulla il precedente. Il filtro di ricerca e la paginazione rispettano sempre l'ordinamento attivo.
 

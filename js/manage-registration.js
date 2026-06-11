@@ -861,7 +861,7 @@ let _sortConfermatiKey  = null;
 let _sortConfermatiDir  = 0;   // 0=originale, 1=discendente, 2=ascendente
 const PAGE_SIZE_CONFERMATI = 25;
 
-const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome'];
+const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome', 'dataRegistrazione'];
 
 function loadConfermati() {
   document.getElementById('loading-overlay').style.display       = 'flex';
@@ -891,7 +891,8 @@ function cercaConfermati(q) {
         r.nome.toLowerCase().includes(needle)           ||
         r.cognome.toLowerCase().includes(needle)        ||
         r.email.toLowerCase().includes(needle)          ||
-        r.codiceBonifico.toLowerCase().includes(needle)
+        r.codiceBonifico.toLowerCase().includes(needle) ||
+        (r.dataRegistrazione || '').includes(needle)
       )
     : _listaConfermati.slice();
   _applySortConfermati();
@@ -902,10 +903,17 @@ function cercaConfermati(q) {
 function _applySortConfermati() {
   if (_sortConfermatiDir === 0 || !_sortConfermatiKey) return;
   const key = _sortConfermatiKey;
-  const dir = _sortConfermatiDir === 1 ? -1 : 1;
+  const dir = _sortConfermatiDir === 1 ? -1 : 1; // 1=desc→-1, 2=asc→+1
   _filteredConfermati.sort((a, b) => {
-    const va = key === 'partecipanti' ? a.adulti + a.bambini + a.infanti : a[key];
-    const vb = key === 'partecipanti' ? b.adulti + b.bambini + b.infanti : b[key];
+    let va, vb;
+    if (key === 'dataRegistrazione') {
+      const parseDate = s => { if (!s) return 0; const [d, m, y] = s.split('/'); return new Date(+y, +m - 1, +d).getTime(); };
+      va = parseDate(a.dataRegistrazione);
+      vb = parseDate(b.dataRegistrazione);
+    } else {
+      va = a[key];
+      vb = b[key];
+    }
     if (typeof va === 'string') return dir * va.localeCompare(vb, 'it');
     return dir * (va - vb);
   });
@@ -916,9 +924,13 @@ function sortConfermati(key) {
     // ciclo: asc(2) → desc(1) → originale(0)
     _sortConfermatiDir--;
     if (_sortConfermatiDir === 0) _sortConfermatiKey = null;
+  } else if (_sortConfermatiKey === null && key === 'cognome') {
+    // già in ordine naturale = cognome asc → il primo click va a discendente
+    _sortConfermatiKey = 'cognome';
+    _sortConfermatiDir = 1;
   } else {
     _sortConfermatiKey = key;
-    _sortConfermatiDir = 2; // parte sempre da ascendente
+    _sortConfermatiDir = 2; // parte da ascendente (▼)
   }
   const q = document.getElementById('confermati-search').value;
   cercaConfermati(q);
@@ -953,15 +965,23 @@ function _renderPaginaConfermati() {
   _CONF_SORT_COLS.forEach((col) => {
     const th = document.getElementById(`th-conf-${col}`);
     if (!th) return;
-    const existing = th.querySelector('.sort-arrow');
-    if (existing) existing.remove();
-    if (col === _sortConfermatiKey) {
-      const span = document.createElement('span');
+    th.querySelector('.sort-arrow')?.remove();
+    th.querySelector('.sort-hint')?.remove();
+
+    const isDefault = (col === 'cognome' && _sortConfermatiDir === 0);
+    const isActive  = (col === _sortConfermatiKey);
+    const span = document.createElement('span');
+
+    if (isActive || isDefault) {
       span.className = 'sort-arrow';
-      span.innerHTML = _sortConfermatiDir === 1 ? '&#9660;' : '&#9650;';
-      th.appendChild(span);
+      // ▼ = ascendente (A→Z), ▲ = discendente (Z→A)
+      span.innerHTML = (isDefault || _sortConfermatiDir === 2) ? '&#9660;' : '&#9650;';
+    } else {
+      span.className = 'sort-hint';
+      span.innerHTML = '&#9650;&#9660;'; // ▲▼ hint inattivo
     }
-    th.classList.toggle('sorted', col === _sortConfermatiKey);
+    th.appendChild(span);
+    th.style.backgroundColor = (isActive || isDefault) ? '#1565c0' : '#082652';
   });
 
   const tbody = document.getElementById('tbody-confermati');
@@ -976,7 +996,7 @@ function _renderPaginaConfermati() {
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
-      <td>€ ${r.prezzo}</td>
+      <td>${r.dataRegistrazione || '&#8212;'}</td>
       <td>
         <button class="btn-resend"
           id="btn-resend-${r.codiceBonifico}"
