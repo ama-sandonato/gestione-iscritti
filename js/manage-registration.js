@@ -117,6 +117,8 @@ function logout() {
   _listaConfermati    = [];
   _filteredConfermati = [];
   _pageConfermati     = 0;
+  _sortConfermatiKey  = null;
+  _sortConfermatiDir  = 0;
   showLoginCard();
 }
 
@@ -848,7 +850,11 @@ function esitoRipristino(risposta, codiceBonifico, btn) {
 let _listaConfermati    = [];
 let _filteredConfermati = [];
 let _pageConfermati     = 0;
+let _sortConfermatiKey  = null;
+let _sortConfermatiDir  = 0;   // 0=originale, 1=discendente, 2=ascendente
 const PAGE_SIZE_CONFERMATI = 25;
+
+const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome'];
 
 function loadConfermati() {
   document.getElementById('loading-overlay').style.display       = 'flex';
@@ -862,8 +868,10 @@ function loadConfermati() {
 }
 
 function showConfermati(lista) {
-  _listaConfermati = lista;
-  _pageConfermati  = 0;
+  _listaConfermati   = lista;
+  _pageConfermati    = 0;
+  _sortConfermatiKey = null;
+  _sortConfermatiDir = 0;
   document.getElementById('confermati-search').disabled = false;
   document.getElementById('confermati-search').value    = '';
   cercaConfermati('');
@@ -879,8 +887,34 @@ function cercaConfermati(q) {
         r.codiceBonifico.toLowerCase().includes(needle)
       )
     : _listaConfermati.slice();
+  _applySortConfermati();
   _pageConfermati = 0;
   _renderPaginaConfermati();
+}
+
+function _applySortConfermati() {
+  if (_sortConfermatiDir === 0 || !_sortConfermatiKey) return;
+  const key = _sortConfermatiKey;
+  const dir = _sortConfermatiDir === 1 ? -1 : 1;
+  _filteredConfermati.sort((a, b) => {
+    const va = key === 'partecipanti' ? a.adulti + a.bambini + a.infanti : a[key];
+    const vb = key === 'partecipanti' ? b.adulti + b.bambini + b.infanti : b[key];
+    if (typeof va === 'string') return dir * va.localeCompare(vb, 'it');
+    return dir * (va - vb);
+  });
+}
+
+function sortConfermati(key) {
+  if (_sortConfermatiKey === key) {
+    // ciclo: asc(2) → desc(1) → originale(0)
+    _sortConfermatiDir--;
+    if (_sortConfermatiDir === 0) _sortConfermatiKey = null;
+  } else {
+    _sortConfermatiKey = key;
+    _sortConfermatiDir = 2; // parte sempre da ascendente
+  }
+  const q = document.getElementById('confermati-search').value;
+  cercaConfermati(q);
 }
 
 function _renderPaginaConfermati() {
@@ -909,13 +943,27 @@ function _renderPaginaConfermati() {
     : `<strong>${totale}</strong> risultati su ${_listaConfermati.length} confermati`;
   document.getElementById('contatore-confermati').innerHTML = totStr;
 
+  _CONF_SORT_COLS.forEach((col) => {
+    const th = document.getElementById(`th-conf-${col}`);
+    if (!th) return;
+    const existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === _sortConfermatiKey) {
+      const span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.innerHTML = _sortConfermatiDir === 1 ? '&#9660;' : '&#9650;';
+      th.appendChild(span);
+    }
+    th.classList.toggle('sorted', col === _sortConfermatiKey);
+  });
+
   const tbody = document.getElementById('tbody-confermati');
   tbody.innerHTML = slice.map(r => {
     const part = r.adulti + r.bambini + r.infanti;
     return `<tr id="riga-conf-${r.codiceBonifico}">
       <td>${r.codiceBonifico}</td>
-      <td>${r.nome}</td>
       <td>${r.cognome}</td>
+      <td>${r.nome}</td>
       <td>${r.email}</td>
       <td>${part}</td>
       <td>${r.menu1}</td>

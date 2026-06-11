@@ -11,7 +11,8 @@ Questo documento descrive tutte le funzionalità disponibili nel backoffice di g
 3. [Tab: Validazione Pagamenti](#3-tab-validazione-pagamenti)
 4. [Tab: Scordarelli](#4-tab-scordarelli)
 5. [Tab: Cancellati](#5-tab-cancellati)
-6. [Modali e operazioni](#6-modali-e-operazioni)
+6. [Tab: Confermati](#6-tab-confermati)
+7. [Modali e operazioni](#7-modali-e-operazioni)
 
 ---
 
@@ -159,7 +160,60 @@ Dopo il ripristino l'iscritto torna allo stato *Registrazione OK* e comparirà n
 
 ---
 
-## 6. Modali e operazioni
+## 6. Tab: Confermati
+
+Questo tab mostra tutti gli iscritti con pagamento confermato (stato *Pagato*) e permette di reinoltrare il biglietto via email.
+
+### Caricare l'elenco
+
+Premere **Carica elenco** per recuperare tutti i confermati. L'elenco viene caricato una sola volta per sessione; premere nuovamente il pulsante per aggiornarlo.
+
+La tabella mostra, per ogni iscritto:
+
+| Colonna | Descrizione |
+|---|---|
+| **Codice Bonifico** | Codice univoco del titolare |
+| **Cognome / Nome** | Dati anagrafici |
+| **Email** | Indirizzo email dell'iscritto |
+| **Partecipanti** | Totale adulti + bambini + infanti |
+| **Menu 1 / Menu 2 / Birre** | Quantità prenotate |
+| **Totale** | Importo pagato in € |
+
+### Ricerca
+
+Il campo di testo in alto permette di filtrare l'elenco in tempo reale per nome, cognome, email o codice bonifico.
+
+### Ordinamento colonne
+
+Le intestazioni **Codice Bonifico**, **Cognome** e **Nome** sono cliccabili:
+
+| Click | Effetto |
+|---|---|
+| 1° click | Ordinamento **ascendente** ▲ |
+| 2° click | Ordinamento **discendente** ▼ |
+| 3° click | Ritorno all'**ordine originale** |
+
+L'ordinamento è esclusivo: cliccare su una nuova colonna annulla il precedente. Il filtro di ricerca e la paginazione rispettano sempre l'ordinamento attivo.
+
+### Paginazione
+
+L'elenco è suddiviso in pagine da 25 record. Usare i pulsanti **Prec / Succ** o i numeri di pagina per navigare.
+
+### Reinoltrare il biglietto
+
+Per ogni iscritto è disponibile il pulsante **✉ Reinoltra biglietto**:
+
+1. Cliccare il pulsante sulla riga dell'iscritto.
+2. Comparirà una modale di conferma con nome e cognome del destinatario.
+3. Premere **✉ Reinoltra** per inviare nuovamente l'email con il biglietto allegato.
+
+Dopo l'invio il pulsante diventa **✅ Inviato** (verde) e non è più cliccabile per quella sessione.
+
+> **Nota:** il biglietto inviato è identico a quello originale; non viene rigenerato.
+
+---
+
+## 7. Modali e operazioni
 
 ### Modale di conferma generica
 

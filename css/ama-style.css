@@ -935,6 +935,22 @@ tr.ripristinata td { background: rgba(46,125,50,0.07) !important; }
   padding: 0 6px;
 }
 
+/* Intestazioni ordinabili — tab Confermati */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+th.sortable:hover  { background: rgba(255,255,255,0.10); }
+th.sortable.sorted { background: rgba(255,255,255,0.20); }
+.sort-arrow {
+  display: inline-block;
+  font-size: 0.75em;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
 /* RESPONSIVE */
 @media (max-width: 900px) {
   .main-card { padding: 20px 16px 30px; }
