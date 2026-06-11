@@ -173,7 +173,8 @@ body {
 .btn-annulla,
 .btn-issue,
 .btn-delete,
-.btn-login {
+.btn-login,
+.btn-resend {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -195,7 +196,8 @@ body {
 .btn-conferma:disabled,
 .btn-annulla:disabled,
 .btn-issue:disabled,
-.btn-delete:disabled {
+.btn-delete:disabled,
+.btn-resend:disabled {
   opacity: 0.45;
   box-shadow: none;
   transform: none;
@@ -869,6 +871,68 @@ tr.ripristinata td { background: rgba(46,125,50,0.07) !important; }
 .ripristino-warning-row strong {
   display: inline;
   color: #c0392b;
+}
+
+/* CONFERMATI */
+.confermati-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.confermati-search {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--deep-blue);
+  background: white;
+  transition: border-color 0.2s;
+}
+.confermati-search:focus { outline: none; border-color: var(--primary-orange); }
+.confermati-search:disabled { background: #f5f5f5; color: #aaa; }
+
+/* ── Reinoltra / Azione secondaria — blu ── */
+.btn-resend {
+  background: #1565c0;
+  color: white;
+  box-shadow: 0 4px 0 #0d3f7a;
+}
+.btn-resend:hover:not(:disabled)  { background: #1976d2; transform: translateY(-1px); box-shadow: 0 5px 0 #0d3f7a; }
+.btn-resend:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #0d3f7a; }
+.btn-resend.inviato { background: var(--green); color: white; box-shadow: none; transform: none; cursor: default; }
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.pagination-bar button {
+  padding: 6px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: var(--deep-blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.pagination-bar button:hover:not(:disabled) { border-color: var(--primary-orange); color: var(--primary-orange); }
+.pagination-bar button:disabled             { opacity: 0.4; cursor: not-allowed; }
+.pagination-bar button.active               { background: var(--primary-orange); color: white; border-color: var(--primary-orange); }
+.pagination-info {
+  font-size: 13px;
+  color: #666;
+  padding: 0 6px;
 }
 
 /* RESPONSIVE */
