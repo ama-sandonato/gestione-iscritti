@@ -667,6 +667,11 @@ function openPendingPayments() {
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
 }
 
+function openConfermati() {
+  showTab('confermati');
+  loadConfermati();
+}
+
 
 // =====================
 // STATUS FOOTER
@@ -692,6 +697,8 @@ function renderDashboardStats(s) {
 
   _setStatVal('stat-pending-val', s.utentiDaApprovare,
     s.utentiDaApprovare > 0 ? 'warn' : '');
+
+  _setStatVal('stat-confermati-val', s.confermati, '');
 
   _setStatVal('stat-totale-val', s.partecipantiTotali, '');
 
