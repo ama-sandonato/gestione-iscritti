@@ -108,6 +108,15 @@ function logout() {
   document.getElementById('tbody-cancellati').innerHTML            = '';
   document.getElementById('risultati-cancellati').style.display    = 'none';
   document.getElementById('nessun-cancellato').style.display       = 'none';
+  document.getElementById('tbody-confermati').innerHTML            = '';
+  document.getElementById('risultati-confermati').style.display    = 'none';
+  document.getElementById('nessun-confermato').style.display       = 'none';
+  document.getElementById('pagination-confermati').innerHTML       = '';
+  document.getElementById('confermati-search').value               = '';
+  document.getElementById('confermati-search').disabled            = true;
+  _listaConfermati    = [];
+  _filteredConfermati = [];
+  _pageConfermati     = 0;
   showLoginCard();
 }
 
@@ -467,9 +476,11 @@ function showTab(tab) {
   document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'   ? 'block' : 'none';
   document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli' ? 'block' : 'none';
   document.getElementById('tab-cancellati').style.display   = tab === 'cancellati'  ? 'block' : 'none';
+  document.getElementById('tab-confermati').style.display   = tab === 'confermati'  ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',   tab === 'pagamenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active', tab === 'scordarelli');
   document.getElementById('tab-btn-cancellati').classList.toggle('active',  tab === 'cancellati');
+  document.getElementById('tab-btn-confermati').classList.toggle('active',  tab === 'confermati');
 }
 
 
@@ -828,4 +839,171 @@ function esitoRipristino(risposta, codiceBonifico, btn) {
     btn.innerHTML = '&#128260; Ripristina';
     alert('&#10060; Errore: ' + risposta.messaggio);
   }
+}
+
+
+// =====================
+// CONFERMATI
+// =====================
+let _listaConfermati    = [];
+let _filteredConfermati = [];
+let _pageConfermati     = 0;
+const PAGE_SIZE_CONFERMATI = 25;
+
+function loadConfermati() {
+  document.getElementById('loading-overlay').style.display       = 'flex';
+  document.getElementById('risultati-confermati').style.display  = 'none';
+  document.getElementById('nessun-confermato').style.display     = 'none';
+
+  apiCall({ action: 'findConfermati' })
+    .then(res => showConfermati(res))
+    .catch(err => { if (err !== 'auth') console.error(err); })
+    .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
+}
+
+function showConfermati(lista) {
+  _listaConfermati = lista;
+  _pageConfermati  = 0;
+  document.getElementById('confermati-search').disabled = false;
+  document.getElementById('confermati-search').value    = '';
+  cercaConfermati('');
+}
+
+function cercaConfermati(q) {
+  const needle = q.trim().toLowerCase();
+  _filteredConfermati = needle
+    ? _listaConfermati.filter(r =>
+        r.nome.toLowerCase().includes(needle)           ||
+        r.cognome.toLowerCase().includes(needle)        ||
+        r.email.toLowerCase().includes(needle)          ||
+        r.codiceBonifico.toLowerCase().includes(needle)
+      )
+    : _listaConfermati.slice();
+  _pageConfermati = 0;
+  _renderPaginaConfermati();
+}
+
+function _renderPaginaConfermati() {
+  const lista  = _filteredConfermati;
+  const totale = lista.length;
+  const pages  = Math.max(1, Math.ceil(totale / PAGE_SIZE_CONFERMATI));
+  if (_pageConfermati >= pages) _pageConfermati = pages - 1;
+
+  const start = _pageConfermati * PAGE_SIZE_CONFERMATI;
+  const slice = lista.slice(start, start + PAGE_SIZE_CONFERMATI);
+
+  const nessuno = document.getElementById('nessun-confermato');
+  const risultati = document.getElementById('risultati-confermati');
+
+  if (totale === 0) {
+    nessuno.style.display   = 'block';
+    risultati.style.display = 'none';
+    return;
+  }
+
+  nessuno.style.display   = 'none';
+  risultati.style.display = 'block';
+
+  const totStr = _listaConfermati.length === _filteredConfermati.length
+    ? `<strong>${totale}</strong> iscritti confermati`
+    : `<strong>${totale}</strong> risultati su ${_listaConfermati.length} confermati`;
+  document.getElementById('contatore-confermati').innerHTML = totStr;
+
+  const tbody = document.getElementById('tbody-confermati');
+  tbody.innerHTML = slice.map(r => {
+    const part = r.adulti + r.bambini + r.infanti;
+    return `<tr id="riga-conf-${r.codiceBonifico}">
+      <td>${r.codiceBonifico}</td>
+      <td>${r.nome}</td>
+      <td>${r.cognome}</td>
+      <td>${r.email}</td>
+      <td>${part}</td>
+      <td>${r.menu1}</td>
+      <td>${r.menu2}</td>
+      <td>${r.birre}</td>
+      <td>€ ${r.prezzo}</td>
+      <td>
+        <button class="btn-resend"
+          id="btn-resend-${r.codiceBonifico}"
+          onclick="reinoltraBiglietto('${r.codiceBonifico}','${r.nome}','${r.cognome}',this)">
+          &#128231; Reinoltra biglietto
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  _renderPaginazioneConfermati(pages);
+}
+
+function _renderPaginazioneConfermati(pages) {
+  const bar = document.getElementById('pagination-confermati');
+  if (pages <= 1) { bar.innerHTML = ''; return; }
+
+  let html = `<button onclick="_goPageConfermati(${_pageConfermati - 1})" ${_pageConfermati === 0 ? 'disabled' : ''}>&lsaquo; Prec</button>`;
+  for (let i = 0; i < pages; i++) {
+    html += `<button class="${i === _pageConfermati ? 'active' : ''}" onclick="_goPageConfermati(${i})">${i + 1}</button>`;
+  }
+  html += `<button onclick="_goPageConfermati(${_pageConfermati + 1})" ${_pageConfermati === pages - 1 ? 'disabled' : ''}>Succ &rsaquo;</button>`;
+  html += `<span class="pagination-info">Pagina ${_pageConfermati + 1} di ${pages}</span>`;
+  bar.innerHTML = html;
+}
+
+function _goPageConfermati(page) {
+  _pageConfermati = page;
+  _renderPaginaConfermati();
+  document.getElementById('tab-confermati').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+let _resendCodiceBonifico = null;
+let _resendBtn            = null;
+
+function reinoltraBiglietto(codiceBonifico, nome, cognome, btn) {
+  _resendCodiceBonifico = codiceBonifico;
+  _resendBtn            = btn;
+
+  document.getElementById('resendModalText').innerHTML =
+    `Stai per reinviare il biglietto a:<br><strong>${nome} ${cognome} (${codiceBonifico})</strong><br><br>` +
+    `L'iscritto riceverà nuovamente l'email con il PDF allegato.`;
+
+  const okBtn = document.getElementById('resendModalOkBtn');
+  okBtn.disabled  = false;
+  okBtn.innerHTML = '&#128231; Reinoltra';
+  okBtn.onclick   = _confermaResend;
+
+  document.getElementById('resendModal').style.display = 'flex';
+}
+
+function closeResendModal() {
+  document.getElementById('resendModal').style.display = 'none';
+  _resendCodiceBonifico = null;
+  _resendBtn            = null;
+}
+
+function _confermaResend() {
+  const okBtn = document.getElementById('resendModalOkBtn');
+  okBtn.disabled  = true;
+  okBtn.innerHTML = '&#8987; Invio in corso...';
+
+  apiCall({ action: 'resendTicket', formData: { codiceBonifico: _resendCodiceBonifico } })
+    .then(res => {
+      if (res.esito === 'OK') {
+        const rowBtn = _resendBtn;
+        closeResendModal();
+        if (rowBtn) {
+          rowBtn.innerHTML = '&#9989; Inviato';
+          rowBtn.classList.add('inviato');
+          rowBtn.disabled  = true;
+        }
+      } else {
+        okBtn.disabled  = false;
+        okBtn.innerHTML = '&#128231; Reinoltra';
+        alert('&#10060; Errore: ' + res.messaggio);
+      }
+    })
+    .catch(err => {
+      if (err !== 'auth') {
+        okBtn.disabled  = false;
+        okBtn.innerHTML = '&#128231; Reinoltra';
+      }
+    });
 }

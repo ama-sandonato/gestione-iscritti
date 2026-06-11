@@ -58,6 +58,7 @@
       <button class="tab-btn active" id="tab-btn-pagamenti" onclick="showTab('pagamenti')">&#128176; Validazione Pagamenti</button>
       <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">&#9200; Scordarelli</button>
       <button class="tab-btn" id="tab-btn-cancellati" onclick="showTab('cancellati')">&#128683; Cancellati</button>
+      <button class="tab-btn" id="tab-btn-confermati" onclick="showTab('confermati')">&#10003; Confermati</button>
     </div>
 
     <!-- ══════════════════════════════════════════ -->
@@ -231,7 +232,62 @@
 
     </div><!-- /tab-cancellati -->
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Confermati                            -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-confermati" style="display:none;">
+
+      <p class="page-subtitle">&#10003; Iscritti Confermati</p>
+
+      <div class="confermati-toolbar">
+        <button class="btn-conferma" onclick="loadConfermati()">Carica elenco</button>
+        <input type="search" id="confermati-search" class="confermati-search" placeholder="&#128269; Cerca per nome, cognome, email, codice..." oninput="cercaConfermati(this.value)" disabled>
+      </div>
+
+      <!-- Nessun risultato -->
+      <div id="nessun-confermato" style="display:none;">&#9989; Nessun iscritto confermato trovato.</div>
+
+      <!-- Risultati -->
+      <div id="risultati-confermati" style="display:none;">
+        <div id="contatore-confermati"></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Codice Bonifico</th>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Email</th>
+                <th>Partecipanti</th>
+                <th>Menu 1</th>
+                <th>Menu 2</th>
+                <th>Birre</th>
+                <th>Totale</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-confermati"></tbody>
+          </table>
+        </div>
+        <div id="pagination-confermati" class="pagination-bar"></div>
+      </div>
+
+    </div><!-- /tab-confermati -->
+
   </div><!-- /main-card -->
+
+  <!-- Modale reinoltro biglietto -->
+  <div id="resendModal" class="modal-confirm">
+    <div class="modal-confirm-maindiv">
+      <div class="modal-confirm-icon">&#128231;</div>
+      <h3>Reinoltra Biglietto</h3>
+      <p id="resendModalText"></p>
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeResendModal()">Annulla</button>
+        <button class="btn-resend" id="resendModalOkBtn">&#128231; Reinoltra</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modale conferma pagamento -->
   <div id="confirmModal" class="modal-confirm">
