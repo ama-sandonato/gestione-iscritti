@@ -1,20 +1,64 @@
 // =====================
 // AUTH & SESSION
 // =====================
-const TOKEN_KEY = 'ama_token';
-const USER_KEY  = 'ama_user';
+const TOKEN_KEY    = 'ama_token';
+const USER_KEY     = 'ama_user';
+const PERMESSI_KEY = 'ama_permessi';
 
-function getToken()  { return sessionStorage.getItem(TOKEN_KEY); }
-function getUser()   { return sessionStorage.getItem(USER_KEY); }
+// Mappa tab → permesso richiesto
+const TAB_PERMESSI = {
+  'pagamenti':   'tab:validazione-pagamenti',
+  'scordarelli': 'tab:scordarelli',
+  'cancellati':  'tab:cancellati',
+  'confermati':  'tab:confermati'
+};
 
-function saveSession(token, user) {
-  sessionStorage.setItem(TOKEN_KEY, token);
-  sessionStorage.setItem(USER_KEY, user);
+function getToken()    { return sessionStorage.getItem(TOKEN_KEY); }
+function getUser()     { return sessionStorage.getItem(USER_KEY); }
+function getPermessi() { return JSON.parse(sessionStorage.getItem(PERMESSI_KEY) || '[]'); }
+function hasPermesso(p) { return getPermessi().includes(p); }
+
+function saveSession(token, user, permessi) {
+  sessionStorage.setItem(TOKEN_KEY,    token);
+  sessionStorage.setItem(USER_KEY,     user);
+  sessionStorage.setItem(PERMESSI_KEY, JSON.stringify(permessi || []));
 }
 
 function clearSession() {
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(PERMESSI_KEY);
+}
+
+function applyPermissions() {
+  Object.keys(TAB_PERMESSI).forEach(tab => {
+    const visible = hasPermesso(TAB_PERMESSI[tab]);
+    document.getElementById(`tab-btn-${tab}`).style.display = visible ? '' : 'none';
+  });
+}
+
+function firstAvailableTab() {
+  return Object.keys(TAB_PERMESSI).find(tab => hasPermesso(TAB_PERMESSI[tab]));
+}
+
+// Aggiorna i permessi dal backend senza richiedere logout/login.
+// Chiamata al caricamento pagina e ad ogni ciclo di polling.
+function refreshPermessi() {
+  return apiCall({ action: 'getPermessi' })
+    .then(res => {
+      if (res.esito === 'OK') {
+        sessionStorage.setItem(PERMESSI_KEY, JSON.stringify(res.permessi || []));
+        applyPermissions();
+        // Se il tab corrente non è più autorizzato, reindirizza
+        const tabAttivo = Object.keys(TAB_PERMESSI).find(t =>
+          document.getElementById(`tab-${t}`)?.style.display !== 'none'
+        );
+        if (tabAttivo && !hasPermesso(TAB_PERMESSI[tabAttivo])) {
+          showTab(firstAvailableTab());
+        }
+      }
+    })
+    .catch(err => { if (err !== 'auth') console.warn('refreshPermessi error', err); });
 }
 
 function showLoginCard() {
@@ -29,7 +73,8 @@ function showMainCard() {
   document.getElementById('main-card').style.display     = 'block';
   document.getElementById('user-header').style.display   = 'flex';
   document.getElementById('user-header-name').innerText  = getUser();
-  showTab('pagamenti');
+  applyPermissions();
+  showTab(firstAvailableTab() || 'pagamenti');
   loadDashboardStats();
   startStatsPolling();
 }
@@ -37,7 +82,9 @@ function showMainCard() {
 // Eseguito al caricamento della pagina
 document.addEventListener('DOMContentLoaded', () => {
   if (getToken()) {
-    showMainCard();
+    // Aggiorna i permessi prima di mostrare l'app: gestisce il caso
+    // in cui i ruoli siano cambiati dall'ultima sessione senza richiedere logout
+    refreshPermessi().then(() => showMainCard());
   } else {
     showLoginCard();
   }
@@ -77,7 +124,7 @@ function doLogin() {
     btn.innerText = 'Accedi';
 
     if (res.esito === 'OK') {
-      saveSession(res.token, res.user);
+      saveSession(res.token, res.user, res.permessi);
       document.getElementById('login-password').value = '';
       showMainCard();
     } else {
@@ -475,6 +522,12 @@ function confirmSendMail(btn) {
 // TAB NAVIGATION
 // =====================
 function showTab(tab) {
+  // Guard: redirect al primo tab disponibile se non autorizzato
+  if (TAB_PERMESSI[tab] && !hasPermesso(TAB_PERMESSI[tab])) {
+    const fallback = firstAvailableTab();
+    if (fallback) { showTab(fallback); }
+    return;
+  }
   document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'   ? 'block' : 'none';
   document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli' ? 'block' : 'none';
   document.getElementById('tab-cancellati').style.display   = tab === 'cancellati'  ? 'block' : 'none';
@@ -682,7 +735,10 @@ let _lastStats  = null;
 
 function startStatsPolling() {
   if (_statsTimer) clearInterval(_statsTimer);
-  _statsTimer = setInterval(loadDashboardStats, STATS_REFRESH_INTERVAL_MS);
+  _statsTimer = setInterval(() => {
+    loadDashboardStats();
+    refreshPermessi();
+  }, STATS_REFRESH_INTERVAL_MS);
 }
 
 function loadDashboardStats() {
