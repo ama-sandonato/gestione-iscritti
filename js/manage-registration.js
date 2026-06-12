@@ -82,9 +82,8 @@ function showMainCard() {
 // Eseguito al caricamento della pagina
 document.addEventListener('DOMContentLoaded', () => {
   if (getToken()) {
-    // Aggiorna i permessi prima di mostrare l'app: gestisce il caso
-    // in cui i ruoli siano cambiati dall'ultima sessione senza richiedere logout
-    refreshPermessi().then(() => showMainCard());
+    showMainCard();      // mostra subito con i permessi già in sessionStorage
+    refreshPermessi();   // aggiorna i permessi in background (se l'admin ha cambiato ruoli)
   } else {
     showLoginCard();
   }
