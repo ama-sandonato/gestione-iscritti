@@ -7,10 +7,11 @@ const PERMESSI_KEY = 'ama_permessi';
 
 // Mappa tab → permesso richiesto
 const TAB_PERMESSI = {
-  'pagamenti':   'tab:validazione-pagamenti',
-  'scordarelli': 'tab:scordarelli',
-  'cancellati':  'tab:cancellati',
-  'confermati':  'tab:confermati'
+  'pagamenti':            'tab:validazione-pagamenti',
+  'scordarelli':          'tab:scordarelli',
+  'cancellati':           'tab:cancellati',
+  'confermati':           'tab:confermati',
+  'dashboard-approvator': 'tab:dashboard-approvator'
 };
 
 function getToken()    { return sessionStorage.getItem(TOKEN_KEY); }
@@ -527,14 +528,17 @@ function showTab(tab) {
     if (fallback) { showTab(fallback); }
     return;
   }
-  document.getElementById('tab-pagamenti').style.display    = tab === 'pagamenti'   ? 'block' : 'none';
-  document.getElementById('tab-scordarelli').style.display  = tab === 'scordarelli' ? 'block' : 'none';
-  document.getElementById('tab-cancellati').style.display   = tab === 'cancellati'  ? 'block' : 'none';
-  document.getElementById('tab-confermati').style.display   = tab === 'confermati'  ? 'block' : 'none';
-  document.getElementById('tab-btn-pagamenti').classList.toggle('active',   tab === 'pagamenti');
-  document.getElementById('tab-btn-scordarelli').classList.toggle('active', tab === 'scordarelli');
-  document.getElementById('tab-btn-cancellati').classList.toggle('active',  tab === 'cancellati');
-  document.getElementById('tab-btn-confermati').classList.toggle('active',  tab === 'confermati');
+  document.getElementById('tab-pagamenti').style.display           = tab === 'pagamenti'            ? 'block' : 'none';
+  document.getElementById('tab-scordarelli').style.display         = tab === 'scordarelli'          ? 'block' : 'none';
+  document.getElementById('tab-cancellati').style.display          = tab === 'cancellati'           ? 'block' : 'none';
+  document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
+  document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
+  document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
+  document.getElementById('tab-btn-scordarelli').classList.toggle('active',          tab === 'scordarelli');
+  document.getElementById('tab-btn-cancellati').classList.toggle('active',           tab === 'cancellati');
+  document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
+  document.getElementById('tab-btn-dashboard-approvator').classList.toggle('active', tab === 'dashboard-approvator');
+  if (tab === 'dashboard-approvator') loadDashboardApprovator();
 }
 
 
@@ -1136,4 +1140,123 @@ function _confermaResend() {
         okBtn.innerHTML = '&#128231; Reinoltra';
       }
     });
+}
+
+
+// =====================
+// DASHBOARD APPROVATOR
+// =====================
+let _dashboardApprovatorLoaded = false;
+
+function loadDashboardApprovator(force) {
+  if (_dashboardApprovatorLoaded && !force) return;
+  document.getElementById('dashboard-approvator-content').innerHTML =
+    '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+
+  apiCall({ action: 'getDashboardApprovator' })
+    .then(data => {
+      _dashboardApprovatorLoaded = true;
+      renderDashboardApprovator(data);
+    })
+    .catch(err => {
+      if (err !== 'auth') {
+        document.getElementById('dashboard-approvator-content').innerHTML =
+          '<div class="dashboard-loading">&#10060; Errore nel caricamento dei dati.</div>';
+      }
+    });
+}
+
+function renderDashboardApprovator(data) {
+  const { iscrizioni, partecipanti, economico } = data;
+  const fmt  = n => '€ ' + Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
+  const barColor = p => p >= 90 ? 'green' : p >= 70 ? 'blue' : 'orange';
+
+  const totTicket    = iscrizioni.ticketDaApprovare + iscrizioni.ticketConfermati;
+  const pctConferma  = pct(iscrizioni.ticketConfermati, totTicket);
+  const pctTotale    = pct(economico.totaleIncassato, economico.totaleAtteso);
+
+  const ecoRow = (icon, label, incassato, atteso) => {
+    const p = pct(incassato, atteso);
+    return `
+      <tr>
+        <td class="eco-label">${icon} ${label}</td>
+        <td class="eco-value">${fmt(incassato)}</td>
+        <td class="eco-atteso">su ${fmt(atteso)}</td>
+        <td class="eco-bar-cell">
+          <div class="dash-progress"><div class="dash-progress-bar ${barColor(p)}" style="width:${p}%"></div></div>
+        </td>
+        <td class="eco-pct">${p}%</td>
+      </tr>`;
+  };
+
+  document.getElementById('dashboard-approvator-content').innerHTML = `
+
+    <div class="dash-section">
+      <div class="dash-section-title">&#127915; Iscrizioni</div>
+      <div class="dash-cards">
+        <div class="dash-card">
+          <div class="dash-card-label">Da approvare</div>
+          <div class="dash-card-value" style="color:${iscrizioni.ticketDaApprovare > 0 ? '#e65100' : '#2e7d32'}">${iscrizioni.ticketDaApprovare}</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Confermati</div>
+          <div class="dash-card-value" style="color:#1565c0">${iscrizioni.ticketConfermati}</div>
+          <div class="dash-progress"><div class="dash-progress-bar ${barColor(pctConferma)}" style="width:${pctConferma}%"></div></div>
+          <div class="dash-card-sub">${pctConferma}% su ${totTicket} totali</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">&#128101; Partecipanti</div>
+      <div class="dash-cards">
+        <div class="dash-card">
+          <div class="dash-card-label">Adulti</div>
+          <div class="dash-card-value">${partecipanti.adultiConfermati}</div>
+          <div class="dash-card-sub">su ${partecipanti.adultiIscritti} iscritti</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Bambini</div>
+          <div class="dash-card-value">${partecipanti.bambiniConfermati}</div>
+          <div class="dash-card-sub">su ${partecipanti.bambiniIscritti} iscritti</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-label">Infanti</div>
+          <div class="dash-card-value">${partecipanti.infantiConfermati}</div>
+          <div class="dash-card-sub">su ${partecipanti.infantiIscritti} iscritti</div>
+        </div>
+        <div class="dash-card dash-card-total">
+          <div class="dash-card-label">Partecipanti</div>
+          <div class="dash-card-value">${partecipanti.totaleConfermati}</div>
+          <div class="dash-card-sub">su ${partecipanti.totaleIscritti} iscritti</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-title">&#128176; Riepilogo Economico</div>
+      <table class="dash-eco-table">
+        <thead>
+          <tr>
+            <th>Voce</th><th>Incassato</th><th>Atteso</th><th style="width:30%"></th><th>%</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ecoRow('&#127829;', 'Menu 1',  economico.menu1Incassato,  economico.menu1Atteso)}
+          ${ecoRow('&#127789;', 'Menu 2',  economico.menu2Incassato,  economico.menu2Atteso)}
+          ${ecoRow('&#127866;', 'Birre',   economico.birreIncassate,  economico.birreAttese)}
+        </tbody>
+        <tfoot>
+          <tr class="eco-total-row">
+            <td><strong>&#128176; Totale</strong></td>
+            <td><strong>${fmt(economico.totaleIncassato)}</strong></td>
+            <td class="eco-atteso">su ${fmt(economico.totaleAtteso)}</td>
+            <td><div class="dash-progress"><div class="dash-progress-bar ${barColor(pctTotale)}" style="width:${pctTotale}%"></div></div></td>
+            <td><strong>${pctTotale}%</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
 }
