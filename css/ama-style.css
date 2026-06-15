@@ -1091,11 +1091,80 @@ th.sortable:hover  { background: #133570; }
   .main-card { padding: 20px 16px 30px; }
   .search-area { flex-direction: column; }
 }
+
 @media (max-width: 600px) {
-  body { padding: 10px; }
-  .main-card { padding: 16px 10px 24px; border-radius: 0 0 14px 14px; }
-  .hero-header { border-radius: 10px 10px 0 0; }
-  .page-title { font-size: 1.2rem; }
+  body { padding: 0; padding-bottom: 55px; }
+
+  .main-card {
+    padding: 12px 8px 24px;
+    border-radius: 12px;
+    margin-top: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  .page-title    { font-size: 1.1rem; }
+  .page-subtitle { font-size: 0.9rem; margin-bottom: 14px; }
+
+  /* ── Tab nav: scroll orizzontale, no wrap ── */
+  .tab-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    gap: 2px;
+    margin: 8px 0 14px;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 7px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Tabella: assicura touch-scroll ── */
+  .table-wrapper {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+  table  { font-size: 12px; }
+  th, td { padding: 8px 6px; }
+
+  /* ── Toolbar confermati / scordarelli / cancellati ── */
+  .confermati-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .confermati-search  { min-width: unset; width: 100%; }
+
+  /* ── Search area (tab pagamenti) ── */
+  .search-area { gap: 8px; }
+  .search-box  { padding: 12px; }
+
+  /* ── Footer stat bar: scroll orizzontale ── */
+  #status-footer {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+  #status-footer::-webkit-scrollbar { display: none; }
+  .stat-item { padding: 0 8px; }
+
+  /* ── Dashboard: 2 card per riga ── */
+  .dash-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .dash-card       { padding: 10px 10px; }
+  .dash-card-value { font-size: 1.5rem; }
+  .dash-card-sub   { font-size: 0.7rem; }
+
+  /* ── Dashboard eco table: nasconde la colonna barra su mobile ── */
+  .dash-eco-table           { font-size: 0.72em; }
+  .dash-eco-table .eco-bar-cell { display: none; }
+
+  /* ── Paginazione ── */
+  .pagination-bar { gap: 4px; }
+  .page-btn       { padding: 5px 8px; font-size: 11px; }
 }
 
 
