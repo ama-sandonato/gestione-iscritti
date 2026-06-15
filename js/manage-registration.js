@@ -1167,26 +1167,31 @@ function loadDashboardApprovator(force) {
 }
 
 function renderDashboardApprovator(data) {
-  const { iscrizioni, partecipanti, economico } = data;
+  const { iscrizioni, partecipanti, prenotazioni } = data;
   const fmt  = n => '€ ' + Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const pct  = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
   const barColor = p => p >= 90 ? 'green' : p >= 70 ? 'blue' : 'orange';
 
   const totTicket    = iscrizioni.ticketDaApprovare + iscrizioni.ticketConfermati;
   const pctConferma  = pct(iscrizioni.ticketConfermati, totTicket);
-  const pctTotale    = pct(economico.totaleIncassato, economico.totaleAtteso);
+  const pctTotale    = pct(prenotazioni.totaleIncassato, prenotazioni.totaleAtteso);
 
-  const ecoRow = (icon, label, incassato, atteso) => {
+  const ecoRow = (icon, label, iscritti, confermati, incassato, atteso) => {
     const p = pct(incassato, atteso);
+    const cntI = iscritti   != null ? `<strong>${iscritti}</strong>`   : '<span class="eco-na">—</span>';
+    const cntC = confermati != null ? `<strong>${confermati}</strong>` : '<span class="eco-na">—</span>';
     return `
       <tr>
         <td class="eco-label">${icon} ${label}</td>
-        <td class="eco-value">${fmt(incassato)}</td>
-        <td class="eco-atteso">su ${fmt(atteso)}</td>
-        <td class="eco-bar-cell">
-          <div class="dash-progress"><div class="dash-progress-bar ${barColor(p)}" style="width:${p}%"></div></div>
+        <td class="eco-count">${cntI}</td>
+        <td class="eco-count eco-count-conf">${cntC}</td>
+        <td class="eco-value">${fmt(incassato)}<span class="eco-atteso"> / ${fmt(atteso)}</span></td>
+        <td class="eco-bar-pct">
+          <div class="eco-bar-wrap">
+            <div class="dash-progress"><div class="dash-progress-bar ${barColor(p)}" style="width:${p}%"></div></div>
+            <span class="eco-pct">${p}%</span>
+          </div>
         </td>
-        <td class="eco-pct">${p}%</td>
       </tr>`;
   };
 
@@ -1235,25 +1240,34 @@ function renderDashboardApprovator(data) {
     </div>
 
     <div class="dash-section">
-      <div class="dash-section-title">&#128176; Riepilogo Economico</div>
+      <div class="dash-section-title">&#128203; Riepilogo Prenotazioni</div>
       <table class="dash-eco-table">
         <thead>
           <tr>
-            <th>Voce</th><th>Incassato</th><th>Atteso</th><th style="width:30%"></th><th>%</th>
+            <th class="eco-th-voce">Voce</th>
+            <th class="eco-th-count">Iscritti</th>
+            <th class="eco-th-count">Confermati</th>
+            <th class="eco-th-money">Incassato / Atteso</th>
+            <th class="eco-th-bar">Avanzamento</th>
           </tr>
         </thead>
         <tbody>
-          ${ecoRow('&#127829;', 'Menu 1',  economico.menu1Incassato,  economico.menu1Atteso)}
-          ${ecoRow('&#127789;', 'Menu 2',  economico.menu2Incassato,  economico.menu2Atteso)}
-          ${ecoRow('&#127866;', 'Birre',   economico.birreIncassate,  economico.birreAttese)}
+          ${ecoRow('&#127829;', 'Menu 1', prenotazioni.menu1Iscritti, prenotazioni.menu1Confermati, prenotazioni.menu1Incassato, prenotazioni.menu1Atteso)}
+          ${ecoRow('&#127789;', 'Menu 2', prenotazioni.menu2Iscritti, prenotazioni.menu2Confermati, prenotazioni.menu2Incassato, prenotazioni.menu2Atteso)}
+          ${ecoRow('&#127866;', 'Birre',  null, null, prenotazioni.birreIncassate, prenotazioni.birreAttese)}
         </tbody>
         <tfoot>
           <tr class="eco-total-row">
-            <td><strong>&#128176; Totale</strong></td>
-            <td><strong>${fmt(economico.totaleIncassato)}</strong></td>
-            <td class="eco-atteso">su ${fmt(economico.totaleAtteso)}</td>
-            <td><div class="dash-progress"><div class="dash-progress-bar ${barColor(pctTotale)}" style="width:${pctTotale}%"></div></div></td>
-            <td><strong>${pctTotale}%</strong></td>
+            <td class="eco-label"><strong>&#128176; Totale</strong></td>
+            <td class="eco-count"></td>
+            <td class="eco-count"></td>
+            <td class="eco-value"><strong>${fmt(prenotazioni.totaleIncassato)}</strong><span class="eco-atteso"> / ${fmt(prenotazioni.totaleAtteso)}</span></td>
+            <td class="eco-bar-pct">
+              <div class="eco-bar-wrap">
+                <div class="dash-progress"><div class="dash-progress-bar ${barColor(pctTotale)}" style="width:${pctTotale}%"></div></div>
+                <span class="eco-pct"><strong>${pctTotale}%</strong></span>
+              </div>
+            </td>
           </tr>
         </tfoot>
       </table>
