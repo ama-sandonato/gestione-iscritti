@@ -59,6 +59,7 @@
       <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">&#9200; Scordarelli</button>
       <button class="tab-btn" id="tab-btn-cancellati" onclick="showTab('cancellati')">&#128683; Cancellati</button>
       <button class="tab-btn" id="tab-btn-confermati" onclick="showTab('confermati')">&#10003; Confermati</button>
+      <button class="tab-btn" id="tab-btn-dashboard-approvator" onclick="showTab('dashboard-approvator')">&#128202; Dashboard</button>
     </div>
 
     <!-- ══════════════════════════════════════════ -->
@@ -273,6 +274,19 @@
       </div>
 
     </div><!-- /tab-confermati -->
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: DASHBOARD APPROVATOR                  -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-dashboard-approvator" style="display:none;">
+      <div class="dashboard-toolbar">
+        <h2 class="tab-title-inline">&#128202; Dashboard Operatore</h2>
+        <button class="btn-small-outline" onclick="loadDashboardApprovator(true)">&#8635; Aggiorna</button>
+      </div>
+      <div id="dashboard-approvator-content">
+        <div class="dashboard-loading">Apertura tab per caricare i dati.</div>
+      </div>
+    </div><!-- /tab-dashboard-approvator -->
 
   </div><!-- /main-card -->
 
