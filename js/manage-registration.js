@@ -11,7 +11,8 @@ const TAB_PERMESSI = {
   'scordarelli':          'tab:scordarelli',
   'cancellati':           'tab:cancellati',
   'confermati':           'tab:confermati',
-  'dashboard-approvator': 'tab:dashboard-approvator'
+  'dashboard-approvator': 'tab:dashboard-approvator',
+  'dashboard-cucina':     'tab:dashboard-cucina'
 };
 
 function getToken()    { return sessionStorage.getItem(TOKEN_KEY); }
@@ -533,12 +534,15 @@ function showTab(tab) {
   document.getElementById('tab-cancellati').style.display          = tab === 'cancellati'           ? 'block' : 'none';
   document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
   document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
+  document.getElementById('tab-dashboard-cucina').style.display      = tab === 'dashboard-cucina'     ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active',          tab === 'scordarelli');
   document.getElementById('tab-btn-cancellati').classList.toggle('active',           tab === 'cancellati');
   document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
   document.getElementById('tab-btn-dashboard-approvator').classList.toggle('active', tab === 'dashboard-approvator');
+  document.getElementById('tab-btn-dashboard-cucina').classList.toggle('active',     tab === 'dashboard-cucina');
   if (tab === 'dashboard-approvator') loadDashboardApprovator();
+  if (tab === 'dashboard-cucina')     loadDashboardCucina();
 }
 
 
@@ -1271,6 +1275,70 @@ function renderDashboardApprovator(data) {
           </tr>
         </tfoot>
       </table>
+    </div>
+  `;
+}
+
+
+// =====================
+// DASHBOARD CUCINA
+// =====================
+let _dashboardCucinaLoaded = false;
+
+function loadDashboardCucina(force) {
+  if (_dashboardCucinaLoaded && !force) return;
+  document.getElementById('dashboard-cucina-content').innerHTML =
+    '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+
+  apiCall({ action: 'getDashboardCucina' })
+    .then(data => {
+      _dashboardCucinaLoaded = true;
+      renderDashboardCucina(data);
+    })
+    .catch(err => {
+      if (err !== 'auth') {
+        document.getElementById('dashboard-cucina-content').innerHTML =
+          '<div class="dashboard-loading">&#10060; Errore nel caricamento dei dati.</div>';
+      }
+    });
+}
+
+function renderDashboardCucina(data) {
+  const { menu1, menu2 } = data;
+  const pct      = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
+  const barColor = p => p >= 90 ? 'green' : p >= 60 ? 'blue' : 'orange';
+
+  const cucinaCard = (icon, label, entrati, confermati) => {
+    const rimanenti = confermati - entrati;
+    const p         = pct(entrati, confermati);
+    const rimClass  = rimanenti <= 0 ? 'cucina-rimanenti ok' : rimanenti <= 5 ? 'cucina-rimanenti warn' : 'cucina-rimanenti';
+    return `
+      <div class="cucina-card">
+        <div class="cucina-card-header">${icon} ${label}</div>
+        <div class="cucina-counters">
+          <div class="cucina-counter">
+            <div class="cucina-counter-val">${entrati}</div>
+            <div class="cucina-counter-lbl">Serviti</div>
+          </div>
+          <div class="cucina-counter-sep">／</div>
+          <div class="cucina-counter">
+            <div class="cucina-counter-val">${confermati}</div>
+            <div class="cucina-counter-lbl">Totali</div>
+          </div>
+        </div>
+        <div class="dash-progress" style="margin:10px 0 6px">
+          <div class="dash-progress-bar ${barColor(p)}" style="width:${p}%"></div>
+        </div>
+        <div class="${rimClass}">
+          ${rimanenti > 0 ? '&#9200; ' + rimanenti + ' ancora da servire' : '&#10003; Tutti serviti!'}
+        </div>
+      </div>`;
+  };
+
+  document.getElementById('dashboard-cucina-content').innerHTML = `
+    <div class="cucina-cards">
+      ${cucinaCard('&#127829;', 'Menu 1', menu1.entrati, menu1.confermati)}
+      ${cucinaCard('&#127789;', 'Menu 2', menu2.entrati, menu2.confermati)}
     </div>
   `;
 }
