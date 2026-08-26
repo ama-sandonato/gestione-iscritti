@@ -591,6 +591,7 @@ function showOverdueRegistrants(lista) {
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
+      <td>${r.frequentaSma || '—'}</td>
       <td class="totale">€ ${Number(r.prezzo).toFixed(2)}</td>
       <td class="data-iscrizione">${dataIscrizione}</td>
       <td>
@@ -830,6 +831,7 @@ function showCancellati(lista) {
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
+      <td>${r.frequentaSma || '&#8212;'}</td>
       <td class="totale">&#8364; ${Number(r.prezzo).toFixed(2)}</td>
       <td class="motivo-cell">${r.motivoCancellazione || '&#8212;'}</td>
       <td class="data-gestione">${r.dataGestione || '&#8212;'}</td>
