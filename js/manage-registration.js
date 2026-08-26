@@ -298,6 +298,7 @@ function mostraRisultati(lista) {
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
+      <td>${r.frequentaSma || '—'}</td>
       <td class="totale">€ ${Number(r.prezzo).toFixed(2)}</td>
       <td>
         <div class="cell-actions">
@@ -1059,6 +1060,7 @@ function _renderPaginaConfermati() {
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
+      <td>${r.frequentaSma || '&#8212;'}</td>
       <td>${r.dataRegistrazione || '&#8212;'}</td>
       <td>
         <button class="btn-resend"
