@@ -36,7 +36,7 @@ In fondo alla pagina è sempre visibile una barra scura con 6 indicatori aggiorn
 | ✓ **Confermati** | Numero totale di iscritti con pagamento validato. **Cliccabile**: apre il tab Confermati con l'elenco caricato automaticamente. |
 | 👥 **Partecipanti** | Totale partecipanti confermati (pagamento validato). |
 | 🍕 **Menu 1** | Posti rimanenti / totali per il menu 1. Giallo sotto il 25%, rosso sotto il 10%. |
-| 🍔 **Menu 2** | Posti rimanenti / totali per il menu 2. Stessa logica colori del Menu 1. |
+| 🥪 **Menu 2** | Posti rimanenti / totali per il menu 2. Stessa logica colori del Menu 1. |
 | 🍺 **Birre** | Totale boccali e litri di birra prenotati. |
 | ✉️ **Email oggi** | Quota email giornaliera rimanente. Giallo sotto 50, rosso sotto 20. |
 
