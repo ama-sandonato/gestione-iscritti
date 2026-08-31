@@ -293,12 +293,13 @@ function mostraRisultati(lista) {
       <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td>${r.email}</td>
+      <td class="cell-email" title="${r.email}">${r.email}</td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
       <td>${r.frequentaSma || '—'}</td>
+      <td>${r.dataRegistrazione || '—'}</td>
       <td class="totale">€ ${Number(r.prezzo).toFixed(2)}</td>
       <td>
         <div class="cell-actions">
@@ -578,7 +579,7 @@ function showOverdueRegistrants(lista) {
 
   lista.forEach(r => {
     const partecipanti = r.adulti + r.bambini + r.infanti;
-    const dataIscrizione = r.dataIscrizione || '—';
+    const dataRegistrazione = r.dataRegistrazione || '—';
 
     const tr  = document.createElement('tr');
     tr.id     = `riga-sc-${r.codiceBonifico}`;
@@ -586,14 +587,14 @@ function showOverdueRegistrants(lista) {
       <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td>${r.email}</td>
+      <td class="cell-email" title="${r.email}">${r.email}</td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
       <td>${r.frequentaSma || '—'}</td>
+      <td class="data-iscrizione">${dataRegistrazione}</td>
       <td class="totale">€ ${Number(r.prezzo).toFixed(2)}</td>
-      <td class="data-iscrizione">${dataIscrizione}</td>
       <td>
         <div class="cell-actions">
           <button
@@ -826,7 +827,7 @@ function showCancellati(lista) {
       <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td>${r.email}</td>
+      <td class="cell-email" title="${r.email}">${r.email}</td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
@@ -834,6 +835,7 @@ function showCancellati(lista) {
       <td>${r.frequentaSma || '&#8212;'}</td>
       <td class="totale">&#8364; ${Number(r.prezzo).toFixed(2)}</td>
       <td class="motivo-cell">${r.motivoCancellazione || '&#8212;'}</td>
+      <td>${r.dataRegistrazione || '&#8212;'}</td>
       <td class="data-gestione">${r.dataGestione || '&#8212;'}</td>
       <td>${r.operatore || '&#8212;'}</td>
       <td>
@@ -927,7 +929,7 @@ let _sortConfermatiKey  = null;
 let _sortConfermatiDir  = 0;   // 0=originale, 1=discendente, 2=ascendente
 const PAGE_SIZE_CONFERMATI = 25;
 
-const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome', 'dataRegistrazione'];
+const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome', 'dataRegistrazione', 'dataGestione'];
 
 function loadConfermati() {
   document.getElementById('loading-overlay').style.display       = 'flex';
@@ -972,10 +974,10 @@ function _applySortConfermati() {
   const dir = _sortConfermatiDir === 1 ? -1 : 1; // 1=desc→-1, 2=asc→+1
   _filteredConfermati.sort((a, b) => {
     let va, vb;
-    if (key === 'dataRegistrazione') {
+    if (key === 'dataRegistrazione' || key === 'dataGestione') {
       const parseDate = s => { if (!s) return 0; const [d, m, y] = s.split('/'); return new Date(+y, +m - 1, +d).getTime(); };
-      va = parseDate(a.dataRegistrazione);
-      vb = parseDate(b.dataRegistrazione);
+      va = parseDate(a[key]);
+      vb = parseDate(b[key]);
     } else {
       va = a[key];
       vb = b[key];
@@ -1057,13 +1059,14 @@ function _renderPaginaConfermati() {
       <td>${r.codiceBonifico}</td>
       <td>${r.cognome}</td>
       <td>${r.nome}</td>
-      <td>${r.email}</td>
+      <td class="cell-email" title="${r.email}">${r.email}</td>
       <td>${part}</td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
       <td>${r.frequentaSma || '&#8212;'}</td>
       <td>${r.dataRegistrazione || '&#8212;'}</td>
+      <td>${r.dataGestione || '&#8212;'}</td>
       <td>
         <button class="btn-resend"
           id="btn-resend-${r.codiceBonifico}"

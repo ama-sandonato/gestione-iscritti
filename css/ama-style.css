@@ -289,7 +289,7 @@ thead tr {
   color: white;
 }
 th {
-  padding: 11px 8px;
+  padding: 11px 5px;
   text-align: left;
   font-size: 11px;
   text-transform: uppercase;
@@ -301,7 +301,7 @@ th:first-child { border-radius: 12px 0 0 0; }
 th:last-child  { border-radius: 0 12px 0 0; }
 
 td {
-  padding: 9px 8px;
+  padding: 9px 5px;
   font-size: 13px;
   color: #333;
   border-bottom: 1px solid rgba(8,38,82,0.07);
@@ -309,6 +309,13 @@ td {
 }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(255,140,50,0.05); }
+
+.cell-email {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 tr.pagata td { background: rgba(46,125,50,0.07) !important; }
 
 .badge {
