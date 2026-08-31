@@ -293,7 +293,7 @@ function mostraRisultati(lista) {
       <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
-      <td class="cell-email" title="${r.email}">${r.email}</td>
+      <td class="cell-email cell-email-clickable" title="Modifica email" onclick="apriCorreggiEmailModal('${r.codiceTitolare}', '${r.codiceBonifico}', '${r.email}')">${r.email}</td>
       <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
@@ -402,6 +402,55 @@ function openConfirmModal(testo, onConfirm, { icon = '💳', title = 'Conferma P
 function closeConfirmModal() {
   document.getElementById('confirmModal').style.display = 'none';
   _confirmCallback = null;
+}
+
+
+// =====================
+// MODALE CORREZIONE EMAIL
+// =====================
+let _fixEmailCtx = null;
+
+function apriCorreggiEmailModal(codiceTitolare, codiceBonifico, emailAttuale) {
+  _fixEmailCtx = { codiceTitolare, codiceBonifico };
+  document.getElementById('fixEmailModalText').innerHTML =
+    `Correggi l'indirizzo email per la prenotazione <strong>${codiceBonifico}</strong><br><br><strong>Verrà reinviata la mail di preiscrizione al nuovo indirizzo!</strong>`;
+  document.getElementById('fixEmailInput').value = emailAttuale;
+  document.getElementById('fixEmailModal').style.display = 'flex';
+
+  document.getElementById('fixEmailModalOkBtn').onclick = () => {
+    if (!_fixEmailCtx) return;
+
+    const nuovaEmail = document.getElementById('fixEmailInput').value.trim();
+    if (!nuovaEmail || !nuovaEmail.includes('@')) {
+      alert('Inserisci un indirizzo email valido.');
+      return;
+    }
+
+    const { codiceTitolare, codiceBonifico } = _fixEmailCtx;
+    const btn = document.getElementById('fixEmailModalOkBtn');
+    btn.disabled = true;
+
+    apiCall({ action: 'correggiEmailIscrizione', formData: { codiceTitolare, codiceBonifico, email: nuovaEmail } })
+      .then(res => {
+        if (res.esito === 'OK') {
+          const cellaEmail = document.getElementById(`riga-${codiceBonifico}`)?.querySelector('.cell-email');
+          if (cellaEmail) {
+            cellaEmail.textContent = nuovaEmail;
+            cellaEmail.title = nuovaEmail;
+          }
+          closeFixEmailModal();
+        } else {
+          alert(res.messaggio || 'Errore durante la correzione email.');
+        }
+      })
+      .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+      .finally(() => { btn.disabled = false; });
+  };
+}
+
+function closeFixEmailModal() {
+  document.getElementById('fixEmailModal').style.display = 'none';
+  _fixEmailCtx = null;
 }
 
 

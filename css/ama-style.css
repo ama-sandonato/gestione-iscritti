@@ -316,6 +316,13 @@ tr:hover td { background: rgba(255,140,50,0.05); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cell-email-clickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.cell-email-clickable:hover {
+  color: var(--primary-orange);
+}
 tr.pagata td { background: rgba(46,125,50,0.07) !important; }
 
 .badge {
@@ -362,6 +369,10 @@ tr.pagata td { background: rgba(46,125,50,0.07) !important; }
   box-shadow: 0 8px 40px rgba(8,38,82,0.25);
   border-top: 4px solid var(--primary-orange);
   text-align: center;
+}
+
+#fixEmailModal .modal-confirm-maindiv {
+  width: 500px;
 }
 
 .modal-confirm-icon {
