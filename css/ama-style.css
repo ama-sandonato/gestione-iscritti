@@ -325,6 +325,47 @@ tr:hover td { background: rgba(255,140,50,0.05); }
 }
 tr.pagata td { background: rgba(46,125,50,0.07) !important; }
 
+.import-csv-intro {
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto 16px;
+  padding: 14px 16px;
+  background: rgba(212,175,55,0.1);
+  border-left: 4px solid var(--gold, #D4AF37);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--deep-blue);
+  line-height: 1.5;
+}
+
+.import-csv-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto 20px;
+  flex-wrap: wrap;
+}
+
+#import-csv-loading {
+  text-align: center;
+  color: var(--deep-blue);
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.import-csv-riepilogo {
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto 12px;
+  font-size: 14px;
+  color: var(--deep-blue);
+}
+
+tr.import-riga-ok td      { background: var(--green-light, #e8f5e9) !important; }
+tr.import-riga-warning td { background: rgba(232,160,0,0.12) !important; }
+
 .badge {
   background: rgba(212,175,55,0.15);
   color: var(--deep-blue);

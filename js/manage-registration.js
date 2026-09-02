@@ -8,6 +8,7 @@ const PERMESSI_KEY = 'ama_permessi';
 // Mappa tab → permesso richiesto
 const TAB_PERMESSI = {
   'pagamenti':            'tab:validazione-pagamenti',
+  'import-movimenti':     'tab:validazione-pagamenti',
   'scordarelli':          'tab:scordarelli',
   'cancellati':           'tab:cancellati',
   'confermati':           'tab:confermati',
@@ -581,12 +582,14 @@ function showTab(tab) {
     return;
   }
   document.getElementById('tab-pagamenti').style.display           = tab === 'pagamenti'            ? 'block' : 'none';
+  document.getElementById('tab-import-movimenti').style.display    = tab === 'import-movimenti'     ? 'block' : 'none';
   document.getElementById('tab-scordarelli').style.display         = tab === 'scordarelli'          ? 'block' : 'none';
   document.getElementById('tab-cancellati').style.display          = tab === 'cancellati'           ? 'block' : 'none';
   document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
   document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
   document.getElementById('tab-dashboard-cucina').style.display      = tab === 'dashboard-cucina'     ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
+  document.getElementById('tab-btn-import-movimenti').classList.toggle('active',     tab === 'import-movimenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active',          tab === 'scordarelli');
   document.getElementById('tab-btn-cancellati').classList.toggle('active',           tab === 'cancellati');
   document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
@@ -594,6 +597,102 @@ function showTab(tab) {
   document.getElementById('tab-btn-dashboard-cucina').classList.toggle('active',     tab === 'dashboard-cucina');
   if (tab === 'dashboard-approvator') loadDashboardApprovator();
   if (tab === 'dashboard-cucina')     loadDashboardCucina();
+}
+
+
+// =====================
+// IMPORTA MOVIMENTI CSV
+// =====================
+let _importCsvContent = null;
+let _importCsvRisultati = null;
+
+function onImportCsvFileSelected(input) {
+  const file = input.files[0];
+  document.getElementById('importCsvOkBtn').disabled = !file;
+  _importCsvContent = null;
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => { _importCsvContent = e.target.result; };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function avviaImportCsv() {
+  if (!_importCsvContent) {
+    alert('Seleziona prima un file CSV.');
+    return;
+  }
+
+  const btn = document.getElementById('importCsvOkBtn');
+  btn.disabled = true;
+  document.getElementById('import-csv-loading').style.display   = 'block';
+  document.getElementById('import-csv-risultati').style.display = 'none';
+
+  apiCall({ action: 'importaMovimentiBancari', formData: { csv: _importCsvContent } })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Errore durante l\'importazione.');
+        return;
+      }
+      _importCsvRisultati = res.risultati;
+      renderRisultatiImportCsv(res.risultati, res.riepilogo);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      document.getElementById('import-csv-loading').style.display = 'none';
+    });
+}
+
+function renderRisultatiImportCsv(risultati, riepilogo) {
+  document.getElementById('import-csv-riepilogo').innerHTML =
+    `Totale righe: <strong>${riepilogo.totale}</strong> &mdash; ` +
+    `Confermati: <strong style="color: var(--green);">${riepilogo.confermati}</strong> &mdash; ` +
+    `Da verificare: <strong style="color:#e8a000;">${riepilogo.warning}</strong> &mdash; ` +
+    `Scartati: <strong style="color:#999;">${riepilogo.scartati}</strong>`;
+
+  const tbody = document.getElementById('tbody-import-csv');
+  tbody.innerHTML = risultati.map(r => {
+    const classeRiga = r.validato === 'SI' ? 'import-riga-ok' : (r.validato === 'WARNING' ? 'import-riga-warning' : '');
+    const descrizioneSicura = (r.descrizione || '').replace(/"/g, '&quot;');
+    return `<tr class="${classeRiga}">
+      <td>${r.dataOp || '—'}</td>
+      <td class="cell-email" title="${descrizioneSicura}">${r.descrizione || '—'}</td>
+      <td>&euro; ${r.importo || '—'}</td>
+      <td>${r.match}</td>
+      <td>${r.validato}</td>
+      <td>${r.note || ''}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('import-csv-risultati').style.display = 'block';
+
+  //ricarico le statistiche del footer, dato che alcuni pagamenti potrebbero essere stati confermati
+  if (riepilogo.confermati > 0) {
+    loadDashboardStats();
+  }
+}
+
+function scaricaRisultatiImportCsv() {
+  if (!_importCsvRisultati || _importCsvRisultati.length === 0) return;
+
+  const header = 'Data Op.;Data Val.;Descrizione;Importo;Divisa;Match;Validato;Note';
+  const righe = _importCsvRisultati.map(r => {
+    const descrizioneSanificata = (r.descrizione || '').replace(/;/g, ',');
+    const noteSanificata        = (r.note || '').replace(/;/g, ',');
+    return [r.dataOp, r.dataVal, descrizioneSanificata, r.importo, r.divisa, r.match, r.validato, noteSanificata].join(';');
+  });
+
+  const csvContent = [header, ...righe].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `movimenti-importati-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 
