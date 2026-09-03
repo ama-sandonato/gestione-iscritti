@@ -665,17 +665,19 @@ function renderRisultatiImportCsv(risultati, riepilogo) {
     `Totale righe: <strong>${riepilogo.totale}</strong> &mdash; ` +
     `Validabili: <strong style="color: var(--green);">${riepilogo.validabili}</strong> &mdash; ` +
     `Da segnalare: <strong style="color:#e8a000;">${riepilogo.daSegnalare}</strong> &mdash; ` +
+    `Già validati: <strong style="color:#999;">${riepilogo.giaValidati || 0}</strong> &mdash; ` +
     `Non trovati: <strong style="color:#c0392b;">${riepilogo.nonTrovati}</strong> &mdash; ` +
     `Scartati: <strong style="color:#999;">${riepilogo.scartati}</strong>`;
 
   const tbody = document.getElementById('tbody-import-csv');
   tbody.innerHTML = risultati.map(r => {
-    const trovato   = r.trovato === 'SI';
-    const validabile = trovato && r.importoOk;
-    const daSegnalare = trovato && !r.importoOk;
-    const classeRiga = validabile ? 'import-riga-ok' : (daSegnalare ? 'import-riga-warning' : '');
+    const trovato      = r.trovato === 'SI';
+    const giaValidato   = r.trovato === 'GIA_VALIDATO';
+    const validabile   = trovato && r.importoOk;
+    const daSegnalare  = trovato && !r.importoOk;
+    const classeRiga = validabile ? 'import-riga-ok' : (daSegnalare ? 'import-riga-warning' : (giaValidato ? 'import-riga-neutra' : ''));
     const descrizioneSicura = (r.descrizione || '').replace(/"/g, '&quot;');
-    const nominativo = trovato ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '—';
+    const nominativo = (trovato || giaValidato) ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '—';
     const atteso = trovato ? `&euro; ${r.prezzo}` : '—';
 
     let checkboxCell = '<td></td>';
@@ -777,7 +779,7 @@ function scaricaRisultatiImportCsv() {
     const descrizioneSanificata = (r.descrizione || '').replace(/;/g, ',');
     const ordinanteSanificato   = (r.ordinante || '').replace(/;/g, ',');
     const noteSanificata        = (r.note || '').replace(/;/g, ',');
-    const nominativo            = r.trovato === 'SI' ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '';
+    const nominativo            = (r.trovato === 'SI' || r.trovato === 'GIA_VALIDATO') ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '';
 
     //leggo lo stato reale dalla riga in pagina (aggiornato sia da validazione singola che multipla),
     //così lo scarico riflette sempre quello che è successo davvero, non solo l'esito dell'import iniziale
@@ -785,6 +787,8 @@ function scaricaRisultatiImportCsv() {
     if (r.trovato === 'SI') {
       const riga = document.getElementById(`riga-${r.codiceBonifico}`);
       stato = (riga && riga.classList.contains('pagata')) ? 'VALIDATO' : 'NON VALIDATO';
+    } else if (r.trovato === 'GIA_VALIDATO') {
+      stato = 'GIA VALIDATO IN PRECEDENZA';
     }
 
     return [r.dataOp, r.dataVal, descrizioneSanificata, r.importo, r.divisa, r.match, r.trovato, r.importoOk ? 'SI' : 'NO', nominativo, ordinanteSanificato, stato, noteSanificata].join(';');
