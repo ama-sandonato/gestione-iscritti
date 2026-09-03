@@ -118,7 +118,7 @@ Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data V
 2. Il nome del file selezionato compare a fianco del pulsante.
 3. Premere **📤 Importa**.
 
-Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Non trovati**, **Scartati**.
+Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Già validati**, **Non trovati**, **Scartati**.
 
 ### Tabella risultati
 
@@ -138,7 +138,8 @@ A seconda dell'esito, la riga mostra un'azione diversa (mai entrambe insieme):
 
 - **Riga verde, pulsante Valida** — causale riconosciuta, iscrizione trovata, importo ricevuto **sufficiente**. La riga è pronta per essere validata.
 - **Riga gialla, pulsante Segnala** — iscrizione trovata ma importo ricevuto **insufficiente** rispetto all'atteso. Non ha senso validare: si invia una segnalazione all'iscritto (stessa modale email del tab Validazione Pagamenti).
-- **Nessuna azione** — causale non riconosciuta, oppure codice non trovato tra le iscrizioni in attesa (già confermato in precedenza o codice inesistente). Riga solo informativa.
+- **Riga grigia, nessuna azione (già validato)** — codice bonifico riconosciuto ma corrispondente a un'iscrizione già in stato PAGATO: il movimento era già stato validato in precedenza. Riga solo informativa.
+- **Nessuna azione (non trovato)** — causale non riconosciuta, oppure codice non trovato tra le iscrizioni (causale scritta male o codice inesistente). Riga solo informativa.
 
 ### Validare un pagamento
 
