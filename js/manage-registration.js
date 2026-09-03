@@ -8,6 +8,7 @@ const PERMESSI_KEY = 'ama_permessi';
 // Mappa tab → permesso richiesto
 const TAB_PERMESSI = {
   'pagamenti':            'tab:validazione-pagamenti',
+  'import-movimenti':     'tab:validazione-pagamenti',
   'scordarelli':          'tab:scordarelli',
   'cancellati':           'tab:cancellati',
   'confermati':           'tab:confermati',
@@ -462,7 +463,13 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
     btn.innerText = "✅ Pagato";
     btn.classList.add("confermato");
     const riga = document.getElementById(`riga-${codiceBonifico}`);
-    if (riga) riga.classList.add("pagata");
+    if (riga) {
+      riga.classList.add("pagata");
+      //tab "Importa Movimenti": se la riga ha una checkbox di selezione multipla, la disattivo
+      //(un movimento già validato non deve restare selezionabile per una nuova validazione)
+      const checkbox = riga.querySelector('.import-csv-check');
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+    }
     const btnIssue = document.getElementById(`btn-issue-${codiceBonifico}`);
     if (btnIssue) btnIssue.style.display = 'none';
     loadDashboardStats();
@@ -581,12 +588,14 @@ function showTab(tab) {
     return;
   }
   document.getElementById('tab-pagamenti').style.display           = tab === 'pagamenti'            ? 'block' : 'none';
+  document.getElementById('tab-import-movimenti').style.display    = tab === 'import-movimenti'     ? 'block' : 'none';
   document.getElementById('tab-scordarelli').style.display         = tab === 'scordarelli'          ? 'block' : 'none';
   document.getElementById('tab-cancellati').style.display          = tab === 'cancellati'           ? 'block' : 'none';
   document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
   document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
   document.getElementById('tab-dashboard-cucina').style.display      = tab === 'dashboard-cucina'     ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
+  document.getElementById('tab-btn-import-movimenti').classList.toggle('active',     tab === 'import-movimenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active',          tab === 'scordarelli');
   document.getElementById('tab-btn-cancellati').classList.toggle('active',           tab === 'cancellati');
   document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
@@ -594,6 +603,203 @@ function showTab(tab) {
   document.getElementById('tab-btn-dashboard-cucina').classList.toggle('active',     tab === 'dashboard-cucina');
   if (tab === 'dashboard-approvator') loadDashboardApprovator();
   if (tab === 'dashboard-cucina')     loadDashboardCucina();
+}
+
+
+// =====================
+// IMPORTA MOVIMENTI CSV
+// =====================
+let _importCsvContent = null;
+let _importCsvRisultati = null;
+
+function onImportCsvFileSelected(input) {
+  const file = input.files[0];
+  const nomeFileSpan = document.getElementById('importCsvFileName');
+
+  document.getElementById('importCsvOkBtn').disabled = !file;
+  _importCsvContent = null;
+
+  if (!file) {
+    nomeFileSpan.textContent = 'Nessun file selezionato';
+    nomeFileSpan.classList.remove('import-csv-filename-selected');
+    return;
+  }
+
+  nomeFileSpan.textContent = file.name;
+  nomeFileSpan.classList.add('import-csv-filename-selected');
+
+  const reader = new FileReader();
+  reader.onload = (e) => { _importCsvContent = e.target.result; };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function avviaImportCsv() {
+  if (!_importCsvContent) {
+    alert('Seleziona prima un file CSV.');
+    return;
+  }
+
+  const btn = document.getElementById('importCsvOkBtn');
+  btn.disabled = true;
+  document.getElementById('import-csv-loading').style.display   = 'block';
+  document.getElementById('import-csv-risultati').style.display = 'none';
+
+  apiCall({ action: 'importaMovimentiBancari', formData: { csv: _importCsvContent } })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Errore durante l\'importazione.');
+        return;
+      }
+      _importCsvRisultati = res.risultati;
+      renderRisultatiImportCsv(res.risultati, res.riepilogo);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      document.getElementById('import-csv-loading').style.display = 'none';
+    });
+}
+
+function renderRisultatiImportCsv(risultati, riepilogo) {
+  document.getElementById('import-csv-riepilogo').innerHTML =
+    `Totale righe: <strong>${riepilogo.totale}</strong> &mdash; ` +
+    `Validabili: <strong style="color: var(--green);">${riepilogo.validabili}</strong> &mdash; ` +
+    `Da segnalare: <strong style="color:#e8a000;">${riepilogo.daSegnalare}</strong> &mdash; ` +
+    `Non trovati: <strong style="color:#c0392b;">${riepilogo.nonTrovati}</strong> &mdash; ` +
+    `Scartati: <strong style="color:#999;">${riepilogo.scartati}</strong>`;
+
+  const tbody = document.getElementById('tbody-import-csv');
+  tbody.innerHTML = risultati.map(r => {
+    const trovato   = r.trovato === 'SI';
+    const validabile = trovato && r.importoOk;
+    const daSegnalare = trovato && !r.importoOk;
+    const classeRiga = validabile ? 'import-riga-ok' : (daSegnalare ? 'import-riga-warning' : '');
+    const descrizioneSicura = (r.descrizione || '').replace(/"/g, '&quot;');
+    const nominativo = trovato ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '—';
+    const atteso = trovato ? `&euro; ${r.prezzo}` : '—';
+
+    let checkboxCell = '<td></td>';
+    let azioniCell = '<td></td>';
+
+    if (validabile) {
+      checkboxCell = `<td><input type="checkbox" class="import-csv-check" data-codice-titolare="${r.codiceTitolare}" data-codice-bonifico="${r.codiceBonifico}" onchange="aggiornaContatoreSelezionatiImportCsv()"></td>`;
+      azioniCell = `<td>
+        <button class="btn-conferma" id="btn-${r.codiceBonifico}" onclick="confermaPagamento('${r.codiceTitolare}', '${r.codiceBonifico}', this)">
+          &#10003; Valida
+        </button>
+      </td>`;
+    } else if (daSegnalare) {
+      azioniCell = `<td>
+        <button class="btn-issue" id="btn-issue-${r.codiceBonifico}" onclick="openMailModal('${r.email}', '${r.nome}', '${r.codiceBonifico}', ${r.prezzo}, this)">
+          Segnala
+        </button>
+      </td>`;
+    }
+
+    const rigaId = trovato ? ` id="riga-${r.codiceBonifico}"` : '';
+
+    return `<tr class="${classeRiga}"${rigaId}>
+      ${checkboxCell}
+      <td>${r.dataOp || '—'}</td>
+      <td class="cell-email" title="${descrizioneSicura}">${r.descrizione || '—'}</td>
+      <td>&euro; ${r.importo || '—'}</td>
+      <td>${atteso}</td>
+      <td>${nominativo}</td>
+      <td>${r.ordinante || '—'}</td>
+      <td class="import-csv-note">${r.note || ''}</td>
+      ${azioniCell}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('import-csv-select-all').checked = false;
+  aggiornaContatoreSelezionatiImportCsv();
+  document.getElementById('import-csv-risultati').style.display = 'block';
+}
+
+function toggleSelezionaTuttiImportCsv(masterCheckbox) {
+  document.querySelectorAll('.import-csv-check:not(:disabled)').forEach(cb => { cb.checked = masterCheckbox.checked; });
+  aggiornaContatoreSelezionatiImportCsv();
+}
+
+function aggiornaContatoreSelezionatiImportCsv() {
+  const selezionati = document.querySelectorAll('.import-csv-check:checked').length;
+  document.getElementById('import-csv-num-selezionati').textContent = selezionati;
+  //la validazione collettiva ha senso solo con 2+ selezionate; per una sola riga c'è già "Valida" individuale
+  document.getElementById('btnValidaSelezionati').disabled = selezionati < 2;
+}
+
+function validaSelezionatiImportCsv() {
+  const checkbox = [...document.querySelectorAll('.import-csv-check:checked')];
+  if (checkbox.length === 0) return;
+
+  const lista = checkbox.map(cb => ({ codiceTitolare: cb.dataset.codiceTitolare, codiceBonifico: cb.dataset.codiceBonifico }));
+
+  openConfirmModal(
+    `Stai per validare <strong>${lista.length}</strong> pagament${lista.length === 1 ? 'o' : 'i'} selezionat${lista.length === 1 ? 'o' : 'i'}. Continuare?`,
+    () => {
+      const btnBulk = document.getElementById('btnValidaSelezionati');
+      btnBulk.disabled = true;
+      document.getElementById('loading-overlay').style.display = 'flex';
+
+      apiCall({ action: 'confermaPagamentiMultipli', formData: { lista } })
+        .then(res => {
+          if (res.esito !== 'OK') {
+            alert(res.messaggio || 'Errore durante la validazione multipla.');
+            return;
+          }
+          res.risultati.forEach(r => {
+            const btnRiga = document.getElementById(`btn-${r.codiceBonifico}`);
+            if (r.esito === 'OK') {
+              //esitoPagamento gestisce già btn + riga + checkbox (vedi definizione)
+              if (btnRiga) esitoPagamento({ esito: 'OK' }, r.codiceBonifico, btnRiga);
+            } else {
+              console.error(`Validazione fallita per ${r.codiceBonifico}: ${r.messaggio}`);
+            }
+          });
+          aggiornaContatoreSelezionatiImportCsv();
+          loadDashboardStats();
+        })
+        .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+        .finally(() => {
+          btnBulk.disabled = false;
+          document.getElementById('loading-overlay').style.display = 'none';
+        });
+    },
+    { icon: '✓', title: 'Validazione collettiva' }
+  );
+}
+
+function scaricaRisultatiImportCsv() {
+  if (!_importCsvRisultati || _importCsvRisultati.length === 0) return;
+
+  const header = 'Data Op.;Data Val.;Descrizione;Importo;Divisa;Match;Trovato;Importo OK;Nominativo;Ordinante;Stato;Note';
+  const righe = _importCsvRisultati.map(r => {
+    const descrizioneSanificata = (r.descrizione || '').replace(/;/g, ',');
+    const ordinanteSanificato   = (r.ordinante || '').replace(/;/g, ',');
+    const noteSanificata        = (r.note || '').replace(/;/g, ',');
+    const nominativo            = r.trovato === 'SI' ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '';
+
+    //leggo lo stato reale dalla riga in pagina (aggiornato sia da validazione singola che multipla),
+    //così lo scarico riflette sempre quello che è successo davvero, non solo l'esito dell'import iniziale
+    let stato = '';
+    if (r.trovato === 'SI') {
+      const riga = document.getElementById(`riga-${r.codiceBonifico}`);
+      stato = (riga && riga.classList.contains('pagata')) ? 'VALIDATO' : 'NON VALIDATO';
+    }
+
+    return [r.dataOp, r.dataVal, descrizioneSanificata, r.importo, r.divisa, r.match, r.trovato, r.importoOk ? 'SI' : 'NO', nominativo, ordinanteSanificato, stato, noteSanificata].join(';');
+  });
+
+  const csvContent = [header, ...righe].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `movimenti-importati-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 

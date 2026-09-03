@@ -56,6 +56,7 @@
     <!-- Tab navigation -->
     <div class="tab-nav">
       <button class="tab-btn active" id="tab-btn-pagamenti" onclick="showTab('pagamenti')">&#128176; Validazione Pagamenti</button>
+      <button class="tab-btn" id="tab-btn-import-movimenti" onclick="showTab('import-movimenti')">&#128228; Importa Movimenti</button>
       <button class="tab-btn" id="tab-btn-scordarelli" onclick="showTab('scordarelli')">&#9200; Scordarelli</button>
       <button class="tab-btn" id="tab-btn-cancellati" onclick="showTab('cancellati')">&#128683; Cancellati</button>
       <button class="tab-btn" id="tab-btn-confermati" onclick="showTab('confermati')">&#10003; Confermati</button>
@@ -141,6 +142,61 @@
       </div>
 
     </div><!-- /tab-pagamenti -->
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Importa Movimenti                     -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-import-movimenti" style="display:none;">
+
+      <p class="page-subtitle">&#128228; Importa Movimenti Bancari &#128228;</p>
+
+      <div class="import-csv-intro">
+        Carica il CSV dei movimenti bancari (formato CAI: <em>Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa</em>).
+        Per ogni riga viene cercata la causale riconosciuta (<em>"&lt;numero&gt; - Donazione A.M.A."</em>) e verificato
+        l'importo: se sufficiente puoi <strong>validare</strong> (singolarmente o in blocco selezionando più righe);
+        se insufficiente puoi <strong>segnalare</strong> l'iscritto. Nessuna conferma è automatica: resta sempre una scelta tua.
+      </div>
+
+      <div class="import-csv-upload">
+        <label for="importCsvFile" class="btn-annulla import-csv-filebtn">&#128193; Scegli file CSV</label>
+        <input type="file" id="importCsvFile" accept=".csv" class="import-csv-fileinput" onchange="onImportCsvFileSelected(this)">
+        <span id="importCsvFileName" class="import-csv-filename">Nessun file selezionato</span>
+        <button class="btn-conferma" id="importCsvOkBtn" onclick="avviaImportCsv()" disabled>&#128228; Importa</button>
+      </div>
+
+      <div id="import-csv-loading" style="display:none;">&#8987; Elaborazione in corso...</div>
+
+      <!-- Riepilogo + risultati -->
+      <div id="import-csv-risultati" style="display:none;">
+        <div id="import-csv-riepilogo" class="import-csv-riepilogo"></div>
+
+        <div class="import-csv-bulk-actions">
+          <button class="btn-conferma" id="btnValidaSelezionati" onclick="validaSelezionatiImportCsv()" disabled>&#10003; Valida selezionati (<span id="import-csv-num-selezionati">0</span>)</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="import-csv-select-all" onchange="toggleSelezionaTuttiImportCsv(this)"></th>
+                <th>Data</th>
+                <th>Descrizione</th>
+                <th>Importo</th>
+                <th>Atteso</th>
+                <th>Nominativo</th>
+                <th>Ordinante</th>
+                <th>Note</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-import-csv"></tbody>
+          </table>
+        </div>
+
+        <button class="btn-annulla" style="margin-top: 12px;" onclick="scaricaRisultatiImportCsv()">&#128190; Scarica CSV risultati</button>
+      </div>
+
+    </div><!-- /tab-import-movimenti -->
 
     <!-- ══════════════════════════════════════════ -->
     <!-- TAB: Scordarelli                           -->
