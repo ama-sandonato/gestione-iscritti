@@ -9,10 +9,11 @@ Questo documento descrive tutte le funzionalità disponibili nel backoffice di g
 1. [Accesso e login](#1-accesso-e-login)
 2. [Barra di stato (footer)](#2-barra-di-stato-footer)
 3. [Tab: Validazione Pagamenti](#3-tab-validazione-pagamenti)
-4. [Tab: Scordarelli](#4-tab-scordarelli)
-5. [Tab: Cancellati](#5-tab-cancellati)
-6. [Tab: Confermati](#6-tab-confermati)
-7. [Modali e operazioni](#7-modali-e-operazioni)
+4. [Tab: Importa Movimenti](#4-tab-importa-movimenti)
+5. [Tab: Scordarelli](#5-tab-scordarelli)
+6. [Tab: Cancellati](#6-tab-cancellati)
+7. [Tab: Confermati](#7-tab-confermati)
+8. [Modali e operazioni](#8-modali-e-operazioni)
 
 ---
 
@@ -62,12 +63,24 @@ Digitare almeno 3 caratteri di nome, cognome o email e premere **Cerca** o `Invi
 
 Per ogni iscritto trovato la tabella mostra:
 
-- **Codice Bonifico** — codice univoco del titolare (hovering mostra il codice titolare interno)
-- **Nome / Cognome / Email**
-- **Partecipanti** — totale adulti + bambini + infanti (hovering mostra il dettaglio)
+- **Cod. Bonifico** — codice univoco del titolare (hovering mostra il codice titolare interno)
+- **Nome / Cognome**
+- **Email** — cliccabile (vedi [Correggere un'email](#correggere-unemail) più sotto)
+- **Partec.** — totale adulti + bambini + infanti (hovering mostra il dettaglio)
 - **Menu 1 / Menu 2 / Birre** — quantità prenotate
+- **Sma** — SI/NO/vuoto: se l'iscrizione include bambini/infanti, indica se frequentano la Scuola Maria Ausiliatrice
+- **Data Reg.** — data di registrazione dell'iscritto
 - **Totale** — importo atteso in €
 - **Azioni** — pulsanti *Conferma* e *Segnala*
+
+### Correggere un'email
+
+Se un iscritto ha digitato male il proprio indirizzo email e non ha mai ricevuto la mail di pre-iscrizione, è possibile correggerla direttamente da qui:
+
+1. Cliccare sull'**indirizzo email** nella tabella (il cursore cambia e appare il tooltip "Modifica email").
+2. Nella modale, correggere l'indirizzo e premere **✉️ Correggi e reinvia**.
+
+Il sistema aggiorna l'email sullo sheet e **reinvia automaticamente** la mail di pre-iscrizione al nuovo indirizzo, con lo stesso preventivo/quantità già presenti — non serve rifare nulla di manuale.
 
 ### Confermare un pagamento
 
@@ -91,7 +104,57 @@ Il testo è modificabile prima dell'invio. Utilizzare questa funzione quando l'i
 
 ---
 
-## 4. Tab: Scordarelli
+## 4. Tab: Importa Movimenti
+
+Questo tab permette di caricare l'estratto conto bancario (CSV) e far riconoscere automaticamente al sistema quali bonifici corrispondono a quali iscrizioni in attesa di pagamento — **senza confermare nulla in automatico**: resta sempre l'operatore a decidere se validare o segnalare.
+
+### Formato del file
+
+Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa`, separatore punto e virgola). Il sistema riconosce la causale scritta dal donatore quando è nel formato `<numero> - Donazione A.M.A.` (es. "035 - Donazione A.M.A."), lo stesso indicato nell'email di pre-iscrizione.
+
+### Caricare e importare
+
+1. Premere **📁 Scegli file CSV** e selezionare il file.
+2. Il nome del file selezionato compare a fianco del pulsante.
+3. Premere **📤 Importa**.
+
+Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Non trovati**, **Scartati**.
+
+### Tabella risultati
+
+Per ogni riga del CSV, il sistema stabilisce automaticamente cosa fare confrontando l'importo *realmente ricevuto* (quello nel CSV) con l'importo atteso (il preventivo dell'iscrizione):
+
+| Colonna | Descrizione |
+|---|---|
+| **Data** | Data operazione |
+| **Descrizione** | Testo grezzo del movimento bancario (hovering mostra il testo completo) |
+| **Importo** | Importo realmente ricevuto, letto dal CSV |
+| **Atteso** | Importo atteso secondo il preventivo dell'iscrizione (vuoto se non trovata) |
+| **Nominativo** | Nome e cognome del titolare dell'iscrizione, letto dal database (vuoto se non trovato) |
+| **Ordinante** | Nome di chi ha fisicamente effettuato il bonifico, letto dal CSV — solo informativo, utile per un controllo visivo in più (es. bonifico fatto da un familiare) |
+| **Note** | Messaggio esplicativo dell'esito |
+
+A seconda dell'esito, la riga mostra un'azione diversa (mai entrambe insieme):
+
+- **Riga verde, pulsante Valida** — causale riconosciuta, iscrizione trovata, importo ricevuto **sufficiente**. La riga è pronta per essere validata.
+- **Riga gialla, pulsante Segnala** — iscrizione trovata ma importo ricevuto **insufficiente** rispetto all'atteso. Non ha senso validare: si invia una segnalazione all'iscritto (stessa modale email del tab Validazione Pagamenti).
+- **Nessuna azione** — causale non riconosciuta, oppure codice non trovato tra le iscrizioni in attesa (già confermato in precedenza o codice inesistente). Riga solo informativa.
+
+### Validare un pagamento
+
+**Singolarmente**: premere **✓ Valida** sulla riga desiderata — stesso comportamento del pulsante *Conferma* in Validazione Pagamenti (genera il biglietto e invia l'email).
+
+**In blocco**: selezionare la checkbox di due o più righe "validabili" (o usare la checkbox in testa alla tabella per selezionarle tutte), poi premere **✓ Valida selezionati (N)**. Il pulsante resta disabilitato se è selezionata una sola riga o nessuna — per una riga sola si usa il pulsante individuale.
+
+Dopo la validazione (singola o in blocco) il pulsante diventa **✅ Pagato** e la riga si evidenzia in verde, esattamente come in Validazione Pagamenti.
+
+### Scaricare i risultati
+
+Il pulsante **💾 Scarica CSV risultati** genera un file CSV con tutte le righe elaborate (incluse le colonne di match/esito), utile per un controllo successivo o per archiviare l'elaborazione.
+
+---
+
+## 5. Tab: Scordarelli
 
 Gli "scordarelli" sono iscritti che si sono registrati ma non hanno ancora effettuato il pagamento entro un certo numero di giorni.
 
@@ -100,7 +163,7 @@ Gli "scordarelli" sono iscritti che si sono registrati ma non hanno ancora effet
 1. Selezionare la soglia temporale dal menu a tendina (1, 3, 5 o 7 giorni — default: 3).
 2. Premere **Carica elenco**.
 
-La tabella mostrerà tutti gli iscritti in stato *Nuovo Iscritto* (registrati ma non pagati) che hanno superato la soglia selezionata. La colonna **Iscritto il** riporta la data di registrazione.
+La tabella mostrerà tutti gli iscritti in stato *Nuovo Iscritto* (registrati ma non pagati) che hanno superato la soglia selezionata, con anche la colonna **Sma** (SI/NO/vuoto) e **Data Reg.** con la data di registrazione.
 
 ### Cancellare una prenotazione
 
@@ -124,7 +187,7 @@ Il pulsante **Sollecita** apre una finestra email precompilata con un messaggio 
 
 ---
 
-## 5. Tab: Cancellati
+## 6. Tab: Cancellati
 
 Questo tab mostra tutte le prenotazioni in stato *Cancellato* e permette di ripristinarle.
 
@@ -136,7 +199,9 @@ La tabella mostra, oltre ai dati anagrafici e di prenotazione:
 
 | Colonna | Descrizione |
 |---|---|
+| **Sma** | SI/NO/vuoto — se l'iscrizione include bambini/infanti, indica se frequentano la Scuola Maria Ausiliatrice |
 | **Motivo** | Motivo della cancellazione inserito al momento dell'operazione |
+| **Data Reg.** | Data di registrazione originaria dell'iscritto |
 | **Data Canc.** | Data e ora in cui è stata eseguita la cancellazione |
 | **Operatore** | Username dell'operatore che ha eseguito la cancellazione |
 
@@ -161,7 +226,7 @@ Dopo il ripristino l'iscritto torna allo stato *Registrazione OK* e comparirà n
 
 ---
 
-## 6. Tab: Confermati
+## 7. Tab: Confermati
 
 Questo tab mostra tutti gli iscritti con pagamento confermato (stato *Pagato*) e permette di reinoltrare il biglietto via email.
 
@@ -173,12 +238,14 @@ La tabella mostra, per ogni iscritto:
 
 | Colonna | Descrizione |
 |---|---|
-| **Codice Bonifico** | Codice univoco del titolare |
+| **Cod. Bonifico** | Codice univoco del titolare |
 | **Cognome / Nome** | Dati anagrafici |
 | **Email** | Indirizzo email dell'iscritto |
-| **Partecipanti** | Totale adulti + bambini + infanti |
+| **Partec.** | Totale adulti + bambini + infanti |
 | **Menu 1 / Menu 2 / Birre** | Quantità prenotate |
+| **Sma** | SI/NO/vuoto — se l'iscrizione include bambini/infanti, indica se frequentano la Scuola Maria Ausiliatrice |
 | **Data Reg.** | Data di registrazione dell'iscritto |
+| **Data Conf.** | Data di conferma del pagamento |
 
 ### Ricerca
 
@@ -186,7 +253,7 @@ Il campo di testo in alto permette di filtrare l'elenco in tempo reale per nome,
 
 ### Ordinamento colonne
 
-Le colonne **Codice Bonifico**, **Cognome**, **Nome** e **Data Reg.** sono ordinabili. Ogni intestazione mostra sempre un indicatore visivo:
+Le colonne **Cod. Bonifico**, **Cognome**, **Nome**, **Data Reg.** e **Data Conf.** sono ordinabili. Ogni intestazione mostra sempre un indicatore visivo:
 
 - **▲▼** (grigio attenuato) — colonna ordinabile ma non attiva
 - **▼** (bianco, sfondo blu) — ordinamento attivo **ascendente** (A→Z, data più vecchia prima)
@@ -221,11 +288,15 @@ Dopo l'invio il pulsante diventa **✅ Inviato** (verde) e non è più cliccabil
 
 ---
 
-## 7. Modali e operazioni
+## 8. Modali e operazioni
 
 ### Modale di conferma generica
 
-Utilizzata per conferma pagamenti e altre azioni irreversibili. Richiede sempre un click esplicito su **Conferma** — premere Annulla per tornare indietro senza eseguire nulla.
+Utilizzata per conferma pagamenti (singola e in blocco) e altre azioni irreversibili. Richiede sempre un click esplicito su **Conferma** — premere Annulla per tornare indietro senza eseguire nulla.
+
+### Modale correzione email
+
+Si apre cliccando sull'indirizzo email in Validazione Pagamenti. Permette di correggere l'indirizzo e reinvia automaticamente la mail di pre-iscrizione al nuovo indirizzo (vedi [Correggere un'email](#correggere-unemail)).
 
 ### Modale email (Segnalazione / Sollecito)
 

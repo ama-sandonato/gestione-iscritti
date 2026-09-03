@@ -463,7 +463,13 @@ function esitoPagamento(risposta, codiceBonifico, btn) {
     btn.innerText = "✅ Pagato";
     btn.classList.add("confermato");
     const riga = document.getElementById(`riga-${codiceBonifico}`);
-    if (riga) riga.classList.add("pagata");
+    if (riga) {
+      riga.classList.add("pagata");
+      //tab "Importa Movimenti": se la riga ha una checkbox di selezione multipla, la disattivo
+      //(un movimento già validato non deve restare selezionabile per una nuova validazione)
+      const checkbox = riga.querySelector('.import-csv-check');
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+    }
     const btnIssue = document.getElementById(`btn-issue-${codiceBonifico}`);
     if (btnIssue) btnIssue.style.display = 'none';
     loadDashboardStats();
@@ -608,9 +614,19 @@ let _importCsvRisultati = null;
 
 function onImportCsvFileSelected(input) {
   const file = input.files[0];
+  const nomeFileSpan = document.getElementById('importCsvFileName');
+
   document.getElementById('importCsvOkBtn').disabled = !file;
   _importCsvContent = null;
-  if (!file) return;
+
+  if (!file) {
+    nomeFileSpan.textContent = 'Nessun file selezionato';
+    nomeFileSpan.classList.remove('import-csv-filename-selected');
+    return;
+  }
+
+  nomeFileSpan.textContent = file.name;
+  nomeFileSpan.classList.add('import-csv-filename-selected');
 
   const reader = new FileReader();
   reader.onload = (e) => { _importCsvContent = e.target.result; };
@@ -647,40 +663,131 @@ function avviaImportCsv() {
 function renderRisultatiImportCsv(risultati, riepilogo) {
   document.getElementById('import-csv-riepilogo').innerHTML =
     `Totale righe: <strong>${riepilogo.totale}</strong> &mdash; ` +
-    `Confermati: <strong style="color: var(--green);">${riepilogo.confermati}</strong> &mdash; ` +
-    `Da verificare: <strong style="color:#e8a000;">${riepilogo.warning}</strong> &mdash; ` +
+    `Validabili: <strong style="color: var(--green);">${riepilogo.validabili}</strong> &mdash; ` +
+    `Da segnalare: <strong style="color:#e8a000;">${riepilogo.daSegnalare}</strong> &mdash; ` +
+    `Non trovati: <strong style="color:#c0392b;">${riepilogo.nonTrovati}</strong> &mdash; ` +
     `Scartati: <strong style="color:#999;">${riepilogo.scartati}</strong>`;
 
   const tbody = document.getElementById('tbody-import-csv');
   tbody.innerHTML = risultati.map(r => {
-    const classeRiga = r.validato === 'SI' ? 'import-riga-ok' : (r.validato === 'WARNING' ? 'import-riga-warning' : '');
+    const trovato   = r.trovato === 'SI';
+    const validabile = trovato && r.importoOk;
+    const daSegnalare = trovato && !r.importoOk;
+    const classeRiga = validabile ? 'import-riga-ok' : (daSegnalare ? 'import-riga-warning' : '');
     const descrizioneSicura = (r.descrizione || '').replace(/"/g, '&quot;');
-    return `<tr class="${classeRiga}">
+    const nominativo = trovato ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '—';
+    const atteso = trovato ? `&euro; ${r.prezzo}` : '—';
+
+    let checkboxCell = '<td></td>';
+    let azioniCell = '<td></td>';
+
+    if (validabile) {
+      checkboxCell = `<td><input type="checkbox" class="import-csv-check" data-codice-titolare="${r.codiceTitolare}" data-codice-bonifico="${r.codiceBonifico}" onchange="aggiornaContatoreSelezionatiImportCsv()"></td>`;
+      azioniCell = `<td>
+        <button class="btn-conferma" id="btn-${r.codiceBonifico}" onclick="confermaPagamento('${r.codiceTitolare}', '${r.codiceBonifico}', this)">
+          &#10003; Valida
+        </button>
+      </td>`;
+    } else if (daSegnalare) {
+      azioniCell = `<td>
+        <button class="btn-issue" id="btn-issue-${r.codiceBonifico}" onclick="openMailModal('${r.email}', '${r.nome}', '${r.codiceBonifico}', ${r.prezzo}, this)">
+          Segnala
+        </button>
+      </td>`;
+    }
+
+    const rigaId = trovato ? ` id="riga-${r.codiceBonifico}"` : '';
+
+    return `<tr class="${classeRiga}"${rigaId}>
+      ${checkboxCell}
       <td>${r.dataOp || '—'}</td>
       <td class="cell-email" title="${descrizioneSicura}">${r.descrizione || '—'}</td>
       <td>&euro; ${r.importo || '—'}</td>
-      <td>${r.match}</td>
-      <td>${r.validato}</td>
-      <td>${r.note || ''}</td>
+      <td>${atteso}</td>
+      <td>${nominativo}</td>
+      <td>${r.ordinante || '—'}</td>
+      <td class="import-csv-note">${r.note || ''}</td>
+      ${azioniCell}
     </tr>`;
   }).join('');
 
+  document.getElementById('import-csv-select-all').checked = false;
+  aggiornaContatoreSelezionatiImportCsv();
   document.getElementById('import-csv-risultati').style.display = 'block';
+}
 
-  //ricarico le statistiche del footer, dato che alcuni pagamenti potrebbero essere stati confermati
-  if (riepilogo.confermati > 0) {
-    loadDashboardStats();
-  }
+function toggleSelezionaTuttiImportCsv(masterCheckbox) {
+  document.querySelectorAll('.import-csv-check:not(:disabled)').forEach(cb => { cb.checked = masterCheckbox.checked; });
+  aggiornaContatoreSelezionatiImportCsv();
+}
+
+function aggiornaContatoreSelezionatiImportCsv() {
+  const selezionati = document.querySelectorAll('.import-csv-check:checked').length;
+  document.getElementById('import-csv-num-selezionati').textContent = selezionati;
+  //la validazione collettiva ha senso solo con 2+ selezionate; per una sola riga c'è già "Valida" individuale
+  document.getElementById('btnValidaSelezionati').disabled = selezionati < 2;
+}
+
+function validaSelezionatiImportCsv() {
+  const checkbox = [...document.querySelectorAll('.import-csv-check:checked')];
+  if (checkbox.length === 0) return;
+
+  const lista = checkbox.map(cb => ({ codiceTitolare: cb.dataset.codiceTitolare, codiceBonifico: cb.dataset.codiceBonifico }));
+
+  openConfirmModal(
+    `Stai per validare <strong>${lista.length}</strong> pagament${lista.length === 1 ? 'o' : 'i'} selezionat${lista.length === 1 ? 'o' : 'i'}. Continuare?`,
+    () => {
+      const btnBulk = document.getElementById('btnValidaSelezionati');
+      btnBulk.disabled = true;
+      document.getElementById('loading-overlay').style.display = 'flex';
+
+      apiCall({ action: 'confermaPagamentiMultipli', formData: { lista } })
+        .then(res => {
+          if (res.esito !== 'OK') {
+            alert(res.messaggio || 'Errore durante la validazione multipla.');
+            return;
+          }
+          res.risultati.forEach(r => {
+            const btnRiga = document.getElementById(`btn-${r.codiceBonifico}`);
+            if (r.esito === 'OK') {
+              //esitoPagamento gestisce già btn + riga + checkbox (vedi definizione)
+              if (btnRiga) esitoPagamento({ esito: 'OK' }, r.codiceBonifico, btnRiga);
+            } else {
+              console.error(`Validazione fallita per ${r.codiceBonifico}: ${r.messaggio}`);
+            }
+          });
+          aggiornaContatoreSelezionatiImportCsv();
+          loadDashboardStats();
+        })
+        .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+        .finally(() => {
+          btnBulk.disabled = false;
+          document.getElementById('loading-overlay').style.display = 'none';
+        });
+    },
+    { icon: '✓', title: 'Validazione collettiva' }
+  );
 }
 
 function scaricaRisultatiImportCsv() {
   if (!_importCsvRisultati || _importCsvRisultati.length === 0) return;
 
-  const header = 'Data Op.;Data Val.;Descrizione;Importo;Divisa;Match;Validato;Note';
+  const header = 'Data Op.;Data Val.;Descrizione;Importo;Divisa;Match;Trovato;Importo OK;Nominativo;Ordinante;Stato;Note';
   const righe = _importCsvRisultati.map(r => {
     const descrizioneSanificata = (r.descrizione || '').replace(/;/g, ',');
+    const ordinanteSanificato   = (r.ordinante || '').replace(/;/g, ',');
     const noteSanificata        = (r.note || '').replace(/;/g, ',');
-    return [r.dataOp, r.dataVal, descrizioneSanificata, r.importo, r.divisa, r.match, r.validato, noteSanificata].join(';');
+    const nominativo            = r.trovato === 'SI' ? `${r.nome || ''} ${r.cognome || ''}`.trim() : '';
+
+    //leggo lo stato reale dalla riga in pagina (aggiornato sia da validazione singola che multipla),
+    //così lo scarico riflette sempre quello che è successo davvero, non solo l'esito dell'import iniziale
+    let stato = '';
+    if (r.trovato === 'SI') {
+      const riga = document.getElementById(`riga-${r.codiceBonifico}`);
+      stato = (riga && riga.classList.contains('pagata')) ? 'VALIDATO' : 'NON VALIDATO';
+    }
+
+    return [r.dataOp, r.dataVal, descrizioneSanificata, r.importo, r.divisa, r.match, r.trovato, r.importoOk ? 'SI' : 'NO', nominativo, ordinanteSanificato, stato, noteSanificata].join(';');
   });
 
   const csvContent = [header, ...righe].join('\n');

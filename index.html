@@ -152,12 +152,15 @@
 
       <div class="import-csv-intro">
         Carica il CSV dei movimenti bancari (formato CAI: <em>Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa</em>).
-        Le righe con causale riconosciuta (<em>"&lt;numero&gt; - Donazione A.M.A."</em>) e importo sufficiente vengono
-        <strong>confermate automaticamente</strong> (biglietto incluso); le altre restano da verificare a mano.
+        Per ogni riga viene cercata la causale riconosciuta (<em>"&lt;numero&gt; - Donazione A.M.A."</em>) e verificato
+        l'importo: se sufficiente puoi <strong>validare</strong> (singolarmente o in blocco selezionando più righe);
+        se insufficiente puoi <strong>segnalare</strong> l'iscritto. Nessuna conferma è automatica: resta sempre una scelta tua.
       </div>
 
       <div class="import-csv-upload">
-        <input type="file" id="importCsvFile" accept=".csv" onchange="onImportCsvFileSelected(this)">
+        <label for="importCsvFile" class="btn-annulla import-csv-filebtn">&#128193; Scegli file CSV</label>
+        <input type="file" id="importCsvFile" accept=".csv" class="import-csv-fileinput" onchange="onImportCsvFileSelected(this)">
+        <span id="importCsvFileName" class="import-csv-filename">Nessun file selezionato</span>
         <button class="btn-conferma" id="importCsvOkBtn" onclick="avviaImportCsv()" disabled>&#128228; Importa</button>
       </div>
 
@@ -167,16 +170,23 @@
       <div id="import-csv-risultati" style="display:none;">
         <div id="import-csv-riepilogo" class="import-csv-riepilogo"></div>
 
+        <div class="import-csv-bulk-actions">
+          <button class="btn-conferma" id="btnValidaSelezionati" onclick="validaSelezionatiImportCsv()" disabled>&#10003; Valida selezionati (<span id="import-csv-num-selezionati">0</span>)</button>
+        </div>
+
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
+                <th><input type="checkbox" id="import-csv-select-all" onchange="toggleSelezionaTuttiImportCsv(this)"></th>
                 <th>Data</th>
                 <th>Descrizione</th>
                 <th>Importo</th>
-                <th>Match</th>
-                <th>Validato</th>
+                <th>Atteso</th>
+                <th>Nominativo</th>
+                <th>Ordinante</th>
                 <th>Note</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="tbody-import-csv"></tbody>
