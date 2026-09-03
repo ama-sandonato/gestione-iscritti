@@ -701,7 +701,7 @@ function renderRisultatiImportCsv(risultati, riepilogo) {
     return `<tr class="${classeRiga}"${rigaId}>
       ${checkboxCell}
       <td>${r.dataOp || '—'}</td>
-      <td class="cell-email" title="${descrizioneSicura}">${r.descrizione || '—'}</td>
+      <td class="cell-email" title="${descrizioneSicura}">${r.causale || r.descrizione || '—'}</td>
       <td>&euro; ${r.importo || '—'}</td>
       <td>${atteso}</td>
       <td>${nominativo}</td>
