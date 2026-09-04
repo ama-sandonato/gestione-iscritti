@@ -1584,7 +1584,7 @@ function renderDashboardCucina(data) {
         <div class="cucina-counters">
           <div class="cucina-counter">
             <div class="cucina-counter-val">${entrati}</div>
-            <div class="cucina-counter-lbl">Serviti</div>
+            <div class="cucina-counter-lbl">Token Consegnati</div>
           </div>
           <div class="cucina-counter-sep">／</div>
           <div class="cucina-counter">
@@ -1596,7 +1596,7 @@ function renderDashboardCucina(data) {
           <div class="dash-progress-bar ${barColor(p)}" style="width:${p}%"></div>
         </div>
         <div class="${rimClass}">
-          ${rimanenti > 0 ? '&#9200; ' + rimanenti + ' ancora da servire' : '&#10003; Tutti serviti!'}
+          ${rimanenti > 0 ? '&#9200; ' + rimanenti + ' token ancora da consegnare' : '&#10003; Tutti i token consegnati!'}
         </div>
       </div>`;
   };
