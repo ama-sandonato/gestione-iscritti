@@ -363,6 +363,10 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
   openConfirmModal(
     `Stai per confermare il pagamento per il codice <strong>${codiceBonifico}</strong>. Continuare?`,
     () => {
+      //testo originale salvato per poterlo ripristinare esatto in caso di errore: è diverso
+      //tra i tab ("Conferma" in Validazione Pagamenti, "✓ Valida" in Importa Movimenti),
+      //un valore hardcoded qui non andrebbe mai bene per entrambi
+      btn.dataset.originalText = btn.dataset.originalText || btn.innerText;
       btn.disabled  = true;
       btn.innerText = '⏳ Salvataggio...';
       document.getElementById('loading-overlay').style.display = 'flex';
@@ -372,7 +376,7 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
         .catch(err => {
           if (err !== 'auth') console.error(err);
           btn.disabled  = false;
-          btn.innerText = '✓ Conferma Pagamento';
+          btn.innerText = btn.dataset.originalText;
         })
         .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
     }
@@ -482,7 +486,9 @@ function esitoPagamento(risposta, btn) {
     loadDashboardStats();
   } else {
     btn.disabled  = false;
-    btn.innerText = "✓ Conferma Pagamento";
+    //ripristina il testo originale del bottone (salvato dal chiamante prima di sovrascriverlo
+    //con "Salvataggio..."), diverso tra i tab — niente hardcoded, non andrebbe mai bene ovunque
+    btn.innerText = btn.dataset.originalText || btn.innerText;
     alert("❌ Errore: " + risposta.messaggio);
   }
 }
@@ -756,6 +762,7 @@ function validaSelezionatiImportCsv() {
             alert(res.messaggio || 'Errore durante la validazione multipla.');
             return;
           }
+          const falliti = [];
           res.risultati.forEach(r => {
             //bottone risalito dalla checkbox effettivamente selezionata (non da un getElementById
             //per codiceBonifico, ambiguo se lo stesso codice compare anche nel tab Validazione
@@ -766,9 +773,22 @@ function validaSelezionatiImportCsv() {
               //esitoPagamento gestisce già btn + riga + checkbox (vedi definizione)
               if (btnRiga) esitoPagamento({ esito: 'OK' }, btnRiga);
             } else {
+              //riga NON toccata di proposito: il pagamento non è stato confermato lato BE
+              //(quota email esaurita, errore invio biglietto...), resta ri-validabile subito
               console.error(`Validazione fallita per ${r.codiceBonifico}: ${r.messaggio}`);
+              falliti.push(`${r.codiceBonifico}: ${r.messaggio}`);
             }
           });
+
+          if (falliti.length > 0) {
+            const validati = res.risultati.length - falliti.length;
+            alert(
+              `${validati} pagament${validati === 1 ? 'o' : 'i'} validat${validati === 1 ? 'o' : 'i'} con successo.\n\n` +
+              `${falliti.length} NON validat${falliti.length === 1 ? 'o' : 'i'} (puoi riprovare):\n` +
+              falliti.map(f => `- ${f}`).join('\n')
+            );
+          }
+
           aggiornaContatoreSelezionatiImportCsv();
           loadDashboardStats();
         })
