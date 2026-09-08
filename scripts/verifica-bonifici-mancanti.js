@@ -52,11 +52,14 @@ function leggiCsv(filePath) {
 }
 
 // --- 1. Bonifici bancari grezzi: dedup per codice ricostruito ---
+//pattern ristretto al nome reale degli export bancari (con "_CAI_"): il file generato da
+//questo stesso script ("Lista Movimenti da validare.csv") NON deve matchare, altrimenti al
+//giro successivo verrebbe riletto come se fosse un nuovo export bancario, gonfiando i conteggi
 const fileGrezzi = fs.readdirSync(cartella)
-  .filter(f => /^Lista Movimenti.*\.csv$/i.test(f));
+  .filter(f => /^Lista Movimenti_CAI_.*\.csv$/i.test(f));
 
 if (fileGrezzi.length === 0) {
-  console.error(`Nessun file "Lista Movimenti*.csv" trovato in ${cartella}`);
+  console.error(`Nessun file "Lista Movimenti_CAI_*.csv" trovato in ${cartella}`);
   process.exit(1);
 }
 
@@ -93,7 +96,12 @@ fileGrezzi.forEach(file => {
     } else {
       const chiave = descrizione.trim();
       if (!nonRiconosciuti.has(chiave)) {
-        nonRiconosciuti.set(chiave, { importo, ordinante, dataOp, occorrenze: 1 });
+        //tengo anche qui la riga grezza originale: questi bonifici finiscono comunque nel
+        //csv di output, così l'operatore può correggere a mano la causale e ricaricarli
+        nonRiconosciuti.set(chiave, {
+          importo, ordinante, dataOp, occorrenze: 1,
+          rigaOriginale: [dataOp, dataVal, causaleTipo, descrizione, importoStr, divisa]
+        });
       } else {
         nonRiconosciuti.get(chiave).occorrenze++;
       }
@@ -148,16 +156,20 @@ if (daValidare.length > 0) {
   });
 }
 
-// --- 4. Genera il csv "Lista Movimenti da validare" (stessa struttura dei csv bancari,
-// solo i bonifici con codice riconosciuto ma non ancora validati) — in sovrascrittura ---
+// --- 4. Genera il csv "Lista Movimenti da validare" (stessa struttura dei csv bancari) —
+// include sia i bonifici con codice riconosciuto ma non ancora validati, sia quelli con
+// causale scritta male (nessun codice ricostruibile): questi ultimi vanno corretti a mano
+// nel file prima di ricaricarlo nel tab "Importa Movimenti" — in sovrascrittura ---
 const headerGrezzo = 'Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa';
-const righeOutput = daValidare.map(c => bonificiPerCodice.get(c).rigaOriginale.join(';'));
+const righeDaValidare     = daValidare.map(c => bonificiPerCodice.get(c).rigaOriginale.join(';'));
+const righeNonRiconosciute = [...nonRiconosciuti.values()].map(b => b.rigaOriginale.join(';'));
+const righeOutput = [...righeDaValidare, ...righeNonRiconosciute];
 const outputPath = path.join(cartella, 'Lista Movimenti da validare.csv');
 fs.writeFileSync(outputPath, [headerGrezzo, ...righeOutput].join('\r\n') + '\r\n', 'utf8');
-console.log(`\n💾 Generato: ${outputPath} (${righeOutput.length} righe)`);
+console.log(`\n💾 Generato: ${outputPath} (${righeOutput.length} righe: ${righeDaValidare.length} da validare + ${righeNonRiconosciute.length} con causale da correggere)`);
 
 if (nonRiconosciuti.size > 0) {
-  console.log(`\n⚠️  Bonifici con causale NON riconosciuta (${nonRiconosciuti.size}) — vanno controllati a mano:`);
+  console.log(`\n⚠️  Bonifici con causale NON riconosciuta (${nonRiconosciuti.size}) — presenti nel csv di output, ma vanno corretti a mano prima di ricaricarli:`);
   [...nonRiconosciuti.entries()].forEach(([descr, b]) => {
     const dup = b.occorrenze > 1 ? ` [in ${b.occorrenze} export]` : '';
     console.log(`  €${b.importo.toFixed(2).padStart(8)}  ${b.dataOp}  ${b.ordinante || '—'}${dup}`);
