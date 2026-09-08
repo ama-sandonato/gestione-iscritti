@@ -368,7 +368,7 @@ function confermaPagamento(codiceTitolare, codiceBonifico, btn) {
       document.getElementById('loading-overlay').style.display = 'flex';
 
       apiCall({ action: 'confirmPayment', formData: { codiceTitolare, codiceBonifico } })
-        .then(res => esitoPagamento(res, codiceBonifico, btn))
+        .then(res => esitoPagamento(res, btn))
         .catch(err => {
           if (err !== 'auth') console.error(err);
           btn.disabled  = false;
@@ -458,20 +458,27 @@ function closeFixEmailModal() {
 // =====================
 // ESITO PAGAMENTO
 // =====================
-function esitoPagamento(risposta, codiceBonifico, btn) {
+function esitoPagamento(risposta, btn) {
   if (risposta.esito === "OK") {
     btn.innerText = "✅ Pagato";
     btn.classList.add("confermato");
-    const riga = document.getElementById(`riga-${codiceBonifico}`);
+    //reso read-only qui (non solo dal chiamante): il flusso di validazione multipla non
+    //disabilita mai i bottoni delle singole righe prima di chiamare questa funzione
+    btn.disabled = true;
+    //riga trovata risalendo dal bottone cliccato (non da un getElementById per codiceBonifico):
+    //lo stesso codiceBonifico può comparire sia nel tab "Validazione Pagamenti" che in "Importa
+    //Movimenti", con id duplicati nel DOM — un lookup per id rischierebbe di aggiornare la riga
+    //sbagliata (quella dell'altro tab) invece di quella realmente cliccata
+    const riga = btn.closest('tr');
     if (riga) {
       riga.classList.add("pagata");
       //tab "Importa Movimenti": se la riga ha una checkbox di selezione multipla, la disattivo
       //(un movimento già validato non deve restare selezionabile per una nuova validazione)
       const checkbox = riga.querySelector('.import-csv-check');
       if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+      const btnIssue = riga.querySelector('.btn-issue');
+      if (btnIssue) btnIssue.style.display = 'none';
     }
-    const btnIssue = document.getElementById(`btn-issue-${codiceBonifico}`);
-    if (btnIssue) btnIssue.style.display = 'none';
     loadDashboardStats();
   } else {
     btn.disabled  = false;
@@ -750,10 +757,14 @@ function validaSelezionatiImportCsv() {
             return;
           }
           res.risultati.forEach(r => {
-            const btnRiga = document.getElementById(`btn-${r.codiceBonifico}`);
+            //bottone risalito dalla checkbox effettivamente selezionata (non da un getElementById
+            //per codiceBonifico, ambiguo se lo stesso codice compare anche nel tab Validazione
+            //Pagamenti): garantisce di aggiornare la riga giusta di QUESTA tabella
+            const cb = checkbox.find(c => c.dataset.codiceBonifico === r.codiceBonifico);
+            const btnRiga = cb?.closest('tr')?.querySelector('.btn-conferma');
             if (r.esito === 'OK') {
               //esitoPagamento gestisce già btn + riga + checkbox (vedi definizione)
-              if (btnRiga) esitoPagamento({ esito: 'OK' }, r.codiceBonifico, btnRiga);
+              if (btnRiga) esitoPagamento({ esito: 'OK' }, btnRiga);
             } else {
               console.error(`Validazione fallita per ${r.codiceBonifico}: ${r.messaggio}`);
             }
@@ -785,7 +796,10 @@ function scaricaRisultatiImportCsv() {
     //così lo scarico riflette sempre quello che è successo davvero, non solo l'esito dell'import iniziale
     let stato = '';
     if (r.trovato === 'SI') {
-      const riga = document.getElementById(`riga-${r.codiceBonifico}`);
+      //cerco solo dentro il tbody di QUESTA tabella: lo stesso codiceBonifico può comparire
+      //anche nel tab Validazione Pagamenti con lo stesso id riga, un getElementById globale
+      //rischierebbe di leggere lo stato dell'altro tab
+      const riga = document.getElementById('tbody-import-csv').querySelector(`[id="riga-${r.codiceBonifico}"]`);
       stato = (riga && riga.classList.contains('pagata')) ? 'VALIDATO' : 'NON VALIDATO';
     } else if (r.trovato === 'GIA_VALIDATO') {
       stato = 'GIA VALIDATO IN PRECEDENZA';
@@ -1524,7 +1538,7 @@ function renderDashboardApprovator(data) {
         <tbody>
           ${ecoRow('&#127829;', 'Menu 1', prenotazioni.menu1Iscritti, prenotazioni.menu1Confermati, prenotazioni.menu1Incassato, prenotazioni.menu1Atteso)}
           ${ecoRow('&#127789;', 'Menu 2', prenotazioni.menu2Iscritti, prenotazioni.menu2Confermati, prenotazioni.menu2Incassato, prenotazioni.menu2Atteso)}
-          ${ecoRow('&#127866;', 'Birre',  null, null, prenotazioni.birreIncassate, prenotazioni.birreAttese)}
+          ${ecoRow('&#127866;', 'Birre',  prenotazioni.birreIscritti, prenotazioni.birreConfermati, prenotazioni.birreIncassate, prenotazioni.birreAttese)}
         </tbody>
         <tfoot>
           <tr class="eco-total-row">
