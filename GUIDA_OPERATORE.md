@@ -38,7 +38,7 @@ In fondo alla pagina è sempre visibile una barra scura con 6 indicatori aggiorn
 | 👥 **Partecipanti** | Totale partecipanti confermati (pagamento validato). |
 | 🍕 **Menu 1** | Posti rimanenti / totali per il menu 1. Giallo sotto il 25%, rosso sotto il 10%. |
 | 🥪 **Menu 2** | Posti rimanenti / totali per il menu 2. Stessa logica colori del Menu 1. |
-| 🍺 **Birre** | Totale boccali e litri di birra prenotati. |
+| 🍺 **Birre** | Totale boccali e litri di birra prenotati. I litri sono una stima (boccali × fattore di conversione configurabile da GAS, default 0.55 l/boccale). |
 | ✉️ **Email oggi** | Quota email giornaliera rimanente. Giallo sotto 50, rosso sotto 20. |
 
 > **Suggerimento:** cliccare su "Da approvare" è il modo più rapido per aprire la coda dei pagamenti in attesa di validazione; cliccare su "Confermati" apre direttamente l'elenco degli iscritti con pagamento già confermato.
