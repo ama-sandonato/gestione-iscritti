@@ -479,7 +479,7 @@ function esitoPagamento(risposta, btn) {
       //tab "Importa Movimenti": se la riga ha una checkbox di selezione multipla, la disattivo
       //(un movimento già validato non deve restare selezionabile per una nuova validazione)
       const checkbox = riga.querySelector('.import-csv-check');
-      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; aggiornaRiepilogoImportCsv(); }
       const btnIssue = riga.querySelector('.btn-issue');
       if (btnIssue) btnIssue.style.display = 'none';
     }
@@ -624,6 +624,7 @@ function showTab(tab) {
 // =====================
 let _importCsvContent = null;
 let _importCsvRisultati = null;
+let _importCsvRiepilogo = null;
 
 function onImportCsvFileSelected(input) {
   const file = input.files[0];
@@ -664,7 +665,8 @@ function avviaImportCsv() {
         return;
       }
       _importCsvRisultati = res.risultati;
-      renderRisultatiImportCsv(res.risultati, res.riepilogo);
+      _importCsvRiepilogo = res.riepilogo;
+      renderRisultatiImportCsv(res.risultati);
     })
     .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
     .finally(() => {
@@ -673,14 +675,29 @@ function avviaImportCsv() {
     });
 }
 
-function renderRisultatiImportCsv(risultati, riepilogo) {
-  document.getElementById('import-csv-riepilogo').innerHTML =
-    `Totale righe: <strong>${riepilogo.totale}</strong> &mdash; ` +
-    `Validabili: <strong style="color: var(--green);">${riepilogo.validabili}</strong> &mdash; ` +
-    `Da segnalare: <strong style="color:#e8a000;">${riepilogo.daSegnalare}</strong> &mdash; ` +
-    `Già validati: <strong style="color:#999;">${riepilogo.giaValidati || 0}</strong> &mdash; ` +
-    `Non trovati: <strong style="color:#c0392b;">${riepilogo.nonTrovati}</strong> &mdash; ` +
-    `Scartati: <strong style="color:#999;">${riepilogo.scartati}</strong>`;
+// Ricalcola il riepilogo (Totale/Validabili/Da segnalare/Già validati/Non trovati/Scartati)
+// leggendo lo stato LIVE delle righe validate in questa sessione (classe "pagata"), invece di
+// restare fermo ai numeri del momento dell'import — altrimenti "Validabili" resta gonfio anche
+// dopo aver validato tutto. I validati "ora" si sommano a "Già validati" (quelli import-time,
+// GIA_VALIDATO) invece di aggiungere un contatore a parte.
+function aggiornaRiepilogoImportCsv() {
+  const el = document.getElementById('import-csv-riepilogo');
+  if (!el || !_importCsvRiepilogo) return;
+
+  const validatiOra = document.querySelectorAll('#tbody-import-csv tr.pagata').length;
+  const r = _importCsvRiepilogo;
+
+  el.innerHTML =
+    `Totale righe: <strong>${r.totale}</strong> &mdash; ` +
+    `Validabili: <strong style="color: var(--green);">${r.validabili - validatiOra}</strong> &mdash; ` +
+    `Da segnalare: <strong style="color:#e8a000;">${r.daSegnalare}</strong> &mdash; ` +
+    `Già validati: <strong style="color:#999;">${(r.giaValidati || 0) + validatiOra}</strong> &mdash; ` +
+    `Non trovati: <strong style="color:#c0392b;">${r.nonTrovati}</strong> &mdash; ` +
+    `Scartati: <strong style="color:#999;">${r.scartati}</strong>`;
+}
+
+function renderRisultatiImportCsv(risultati) {
+  aggiornaRiepilogoImportCsv();
 
   const tbody = document.getElementById('tbody-import-csv');
   tbody.innerHTML = risultati.map(r => {
