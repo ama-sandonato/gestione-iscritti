@@ -19,13 +19,15 @@ const cartella = path.resolve(process.argv[2] || 'bonifici');
 const PREFIX = 'AMA';
 const FORMATTER_LEN = 3;
 
-// Stessa logica di estrazione usata dal backend (bank-import.js), per restare coerenti
-// con quello che il sistema live considera "riconosciuto".
+// Stessa logica di estrazione del backend (bank-import.js), con una tolleranza in più:
+// l'ancora "DESCR.OPERAZIONE SCT:" viene cercata con spazi opzionali/variabili tra le parole
+// (es. "DESCR.OPERAZIONESCT:" senza spazio, visto in alcuni export reali) invece che come
+// stringa fissa — il backend resta rigido su questo, qui recuperiamo il caso in più.
 function estraiCausale(descrizione) {
-  const ancora = 'DESCR.OPERAZIONE SCT:';
-  const idx = (descrizione || '').indexOf(ancora);
-  if (idx === -1) return null;
-  const resto = descrizione.substring(idx + ancora.length);
+  const ancora = /DESCR\.OPERAZIONE\s*SCT\s*:/i;
+  const match = (descrizione || '').match(ancora);
+  if (!match) return null;
+  const resto = descrizione.substring(match.index + match[0].length);
   const idxAsterisco = resto.indexOf('<*>');
   const idxTrattinoSct = resto.indexOf('-SCT');
   const candidati = [idxAsterisco, idxTrattinoSct].filter(i => i !== -1);
@@ -33,11 +35,55 @@ function estraiCausale(descrizione) {
   return resto.substring(0, idxFine).trim();
 }
 
-function ricostruisciCodice(causale) {
+// Match "rigido": stesso identico formato preteso dal backend (bank-import.js) — un numero,
+// un trattino, "Donazione", "A.M.A.". Se una causale passa questo match, il sistema live la
+// riconoscerebbe già oggi così com'è, nessuna riscrittura necessaria.
+function estraiNumeroStrict(causale) {
   if (!causale) return null;
   const match = causale.match(/^0*(\d+)\s*-\s*Donazione\s+A\.?M\.?A\.?/i);
-  if (!match) return null;
-  return PREFIX + match[1].padStart(FORMATTER_LEN, '0');
+  return match ? match[1].padStart(FORMATTER_LEN, '0') : null;
+}
+
+// Match "permissivo": cerca tre segnali ovunque nella causale, senza pretendere un ordine o
+// un formato fisso — un numero (1-4 cifre) come token isolato, la parola "donazione" (anche
+// minuscola/maiuscola), una variante di "ama" (con o senza punti/spazi, es. "AMA", "A.M.A.",
+// "A.M. A."). Serve per recuperare causali scritte "a mano" dai donatori senza trattino, con
+// il nome prima del codice, ecc. — che il backend (volutamente rigido) scarterebbe.
+function estraiNumeroLenient(causale) {
+  if (!causale) return null;
+  if (!/donazion/i.test(causale)) return null;
+  if (!/\ba\.?\s*m\.?\s*a\.?\b/i.test(causale)) return null;
+  const match = causale.match(/\b(\d{1,4})\b/);
+  return match ? match[1].padStart(FORMATTER_LEN, '0') : null;
+}
+
+/**
+ * Prova prima il match rigido (identico al backend), poi in fallback quello permissivo.
+ * @returns {{ numero: string, causaleNonStandard: boolean }|null}
+ */
+function trovaNumero(causale) {
+  const strict = estraiNumeroStrict(causale);
+  if (strict) return { numero: strict, causaleNonStandard: false };
+  const lenient = estraiNumeroLenient(causale);
+  if (lenient) return { numero: lenient, causaleNonStandard: true };
+  return null;
+}
+
+/**
+ * Riscrive la Descrizione nel formato causale STANDARD ("<numero> - Donazione A.M.A."),
+ * mantenendo intatto il prefisso "ORD:...DT.ORD:..." (serve al backend per l'ordinante) —
+ * così il backend (che resta rigido, non tocchiamo bank-import.js) riconosce la riga al
+ * ricaricamento del csv generato da questo script.
+ */
+function standardizzaDescrizione(descrizioneOriginale, numero) {
+  //stessa ricerca tollerante di estraiCausale: l'ancora originale può avere spazi mancanti/
+  //variabili, ma nel riscrivere la mettiamo sempre nella forma canonica, spazio incluso
+  const ancoraCanonica = 'DESCR.OPERAZIONE SCT:';
+  const match = descrizioneOriginale.match(/DESCR\.OPERAZIONE\s*SCT\s*:/i);
+  const prefisso = match
+    ? descrizioneOriginale.substring(0, match.index) + ancoraCanonica
+    : `${descrizioneOriginale} ${ancoraCanonica}`;
+  return `${prefisso}${numero} - Donazione A.M.A.<*>`;
 }
 
 function parseImportoItaliano(s) {
@@ -63,8 +109,9 @@ if (fileGrezzi.length === 0) {
   process.exit(1);
 }
 
-const bonificiPerCodice = new Map(); // codice -> { importo, ordinante, dataOp, occorrenze }
+const bonificiPerCodice = new Map(); // codice -> { importo, ordinante, dataOp, occorrenze, numero, causaleNonStandard }
 const nonRiconosciuti = new Map();   // descrizione -> { importo, dataOp, occorrenze } (niente codice: dedup per testo)
+let recuperatiConLenient = 0;
 
 fileGrezzi.forEach(file => {
   const righe = leggiCsv(path.join(cartella, file));
@@ -80,16 +127,21 @@ fileGrezzi.forEach(file => {
     const ordinante = ordMatch ? ordMatch[1].trim() : null;
 
     const causale = estraiCausale(descrizione);
-    const codice = ricostruisciCodice(causale);
+    const trovato = trovaNumero(causale);
+    const codice = trovato ? PREFIX + trovato.numero : null;
 
     if (codice) {
       if (!bonificiPerCodice.has(codice)) {
         //tengo la riga grezza originale (dataOp, dataVal, causaleTipo, descrizione, importoStr,
-        //divisa) così posso rigenerare un csv identico nella struttura a "Lista Movimenti"
+        //divisa) così posso rigenerare un csv identico nella struttura a "Lista Movimenti" —
+        //oppure, se causaleNonStandard, una versione con la causale riscritta in formato standard
         bonificiPerCodice.set(codice, {
           importo, ordinante, dataOp, occorrenze: 1,
+          numero: trovato.numero,
+          causaleNonStandard: trovato.causaleNonStandard,
           rigaOriginale: [dataOp, dataVal, causaleTipo, descrizione, importoStr, divisa]
         });
+        if (trovato.causaleNonStandard) recuperatiConLenient++;
       } else {
         bonificiPerCodice.get(codice).occorrenze++;
       }
@@ -125,8 +177,8 @@ fileValidati.forEach(file => {
     const stato = campi[10];
 
     if (stato === 'VALIDATO' || stato === 'GIA VALIDATO IN PRECEDENZA') {
-      const codice = ricostruisciCodice(estraiCausale(descrizione));
-      if (codice) codiciValidati.add(codice);
+      const trovato = trovaNumero(estraiCausale(descrizione));
+      if (trovato) codiciValidati.add(PREFIX + trovato.numero);
     }
   });
 });
@@ -146,22 +198,33 @@ console.log(`📄 Export di validazione letti: ${fileValidati.length} (${fileVal
 console.log(`\n💰 Bonifici unici riconosciuti: ${tuttiCodici.length}`);
 console.log(`✅ Già validati: ${tuttiCodici.length - daValidare.length}`);
 console.log(`⏳ Ancora da validare: ${daValidare.length}`);
+if (recuperatiConLenient > 0) {
+  console.log(`✏️  Di cui con causale non standard, recuperati e riscritti nel csv di output: ${recuperatiConLenient}`);
+}
 
 if (daValidare.length > 0) {
   console.log(`\n--- Ancora da validare ---`);
   daValidare.forEach(c => {
     const b = bonificiPerCodice.get(c);
     const dup = b.occorrenze > 1 ? ` [in ${b.occorrenze} export]` : '';
-    console.log(`  ${c}  €${b.importo.toFixed(2).padStart(8)}  ${b.dataOp}  ${b.ordinante || '—'}${dup}`);
+    const nota = b.causaleNonStandard ? ' [causale riscritta]' : '';
+    console.log(`  ${c}  €${b.importo.toFixed(2).padStart(8)}  ${b.dataOp}  ${b.ordinante || '—'}${dup}${nota}`);
   });
 }
 
 // --- 4. Genera il csv "Lista Movimenti da validare" (stessa struttura dei csv bancari) —
-// include sia i bonifici con codice riconosciuto ma non ancora validati, sia quelli con
-// causale scritta male (nessun codice ricostruibile): questi ultimi vanno corretti a mano
-// nel file prima di ricaricarlo nel tab "Importa Movimenti" — in sovrascrittura ---
+// include sia i bonifici con codice riconosciuto ma non ancora validati (causale riscritta in
+// formato standard se recuperata col validatore permissivo, altrimenti riga originale
+// invariata), sia quelli con causale scritta male al punto da non essere ricostruibile
+// nemmeno col validatore permissivo: questi ultimi vanno corretti a mano nel file prima di
+// ricaricarlo nel tab "Importa Movimenti" — in sovrascrittura ---
 const headerGrezzo = 'Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa';
-const righeDaValidare     = daValidare.map(c => bonificiPerCodice.get(c).rigaOriginale.join(';'));
+const righeDaValidare = daValidare.map(c => {
+  const b = bonificiPerCodice.get(c);
+  if (!b.causaleNonStandard) return b.rigaOriginale.join(';');
+  const [dataOp, dataVal, causaleTipo, descrizione, importoStr, divisa] = b.rigaOriginale;
+  return [dataOp, dataVal, causaleTipo, standardizzaDescrizione(descrizione, b.numero), importoStr, divisa].join(';');
+});
 const righeNonRiconosciute = [...nonRiconosciuti.values()].map(b => b.rigaOriginale.join(';'));
 const righeOutput = [...righeDaValidare, ...righeNonRiconosciute];
 const outputPath = path.join(cartella, 'Lista Movimenti da validare.csv');
