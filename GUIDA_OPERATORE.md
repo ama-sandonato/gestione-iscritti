@@ -13,7 +13,9 @@ Questo documento descrive tutte le funzionalità disponibili nel backoffice di g
 5. [Tab: Scordarelli](#5-tab-scordarelli)
 6. [Tab: Cancellati](#6-tab-cancellati)
 7. [Tab: Confermati](#7-tab-confermati)
-8. [Modali e operazioni](#8-modali-e-operazioni)
+8. [Tab: Dashboard Operatore](#8-tab-dashboard-operatore)
+9. [Tab: Dashboard Cucina](#9-tab-dashboard-cucina)
+10. [Modali e operazioni](#10-modali-e-operazioni)
 
 ---
 
@@ -93,6 +95,8 @@ Dopo la conferma:
 - La riga viene evidenziata in verde.
 - Gli indicatori nella barra di stato vengono aggiornati.
 
+> **Cosa succede se l'invio del biglietto fallisce** (es. quota email giornaliera esaurita, o un errore tecnico durante l'invio): compare un messaggio di errore e il pulsante torna cliccabile su **Conferma**. In questo caso il pagamento **non è stato salvato come confermato** — l'iscritto resta in attesa, esattamente come prima del click. Non è un doppio invio né un rischio: basta semplicemente **riprovare** (subito, o più tardi se il problema è la quota esaurita).
+
 ### Inviare una segnalazione
 
 Il pulsante **Segnala** apre una finestra email precompilata con:
@@ -119,6 +123,8 @@ Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data V
 3. Premere **📤 Importa**.
 
 Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Già validati**, **Non trovati**, **Scartati**.
+
+Questo riepilogo **si aggiorna in tempo reale** man mano che si valida (singolarmente o in blocco): "Validabili" scende e "Già validati" sale, senza bisogno di ricaricare il file o la pagina.
 
 ### Tabella risultati
 
@@ -148,6 +154,15 @@ A seconda dell'esito, la riga mostra un'azione diversa (mai entrambe insieme):
 **In blocco**: selezionare la checkbox di due o più righe "validabili" (o usare la checkbox in testa alla tabella per selezionarle tutte), poi premere **✓ Valida selezionati (N)**. Il pulsante resta disabilitato se è selezionata una sola riga o nessuna — per una riga sola si usa il pulsante individuale.
 
 Dopo la validazione (singola o in blocco) il pulsante diventa **✅ Pagato** e la riga si evidenzia in verde, esattamente come in Validazione Pagamenti.
+
+> **Se una o più validazioni falliscono** (es. quota email esaurita a metà di una validazione multipla): per la validazione **singola** vale lo stesso comportamento descritto in [Confermare un pagamento](#confermare-un-pagamento) — nessun dato salvato, si può riprovare. Per la validazione **in blocco**, al termine compare un riepilogo esplicito tipo:
+> ```
+> 3 pagamenti validati con successo.
+> 2 NON validati (puoi riprovare):
+> - AMA023: Quota email giornaliera esaurita...
+> - AMA055: Impossibile inviare il biglietto...
+> ```
+> Le righe fallite restano invariate (checkbox ancora selezionabile, pulsante "Valida" ancora attivo): basta selezionarle di nuovo e ripetere l'operazione.
 
 ### Scaricare i risultati
 
@@ -289,7 +304,36 @@ Dopo l'invio il pulsante diventa **✅ Inviato** (verde) e non è più cliccabil
 
 ---
 
-## 8. Modali e operazioni
+## 8. Tab: Dashboard Operatore
+
+Vista di sintesi su iscrizioni, partecipanti e incassi. A differenza della barra di stato in basso, **non si aggiorna automaticamente**: i dati vengono caricati una sola volta all'apertura del tab e restano fermi finché non si preme il pulsante **↻ Aggiorna** in alto a destra (o si ricarica la pagina).
+
+### Iscrizioni
+
+Due indicatori: **Da approvare** (arancione se > 0, verde se a zero) e **Confermati**, con barra di avanzamento e percentuale sul totale.
+
+### Partecipanti
+
+Quattro riquadri — **Adulti**, **Bambini**, **Infanti**, **Partecipanti** (totale) — ognuno mostra il numero confermato su quello iscritto.
+
+### Riepilogo Prenotazioni
+
+Tabella con una riga per **Menu 1**, **Menu 2** e **Birre**: per ciascuna, quanti iscritti / quanti confermati, l'incassato rispetto all'atteso in €, e una barra di avanzamento percentuale. In fondo una riga di **Totale** con l'incasso complessivo.
+
+---
+
+## 9. Tab: Dashboard Cucina
+
+Vista pensata per chi gestisce la distribuzione dei token menu agli ingressi. Come la Dashboard Operatore, **non si aggiorna automaticamente**: usare il pulsante **↻ Aggiorna** per ricaricare i dati.
+
+Per ogni menu (**Menu 1**, **Menu 2**) una card mostra:
+- **Token Consegnati** / **Totali** — quanti biglietti con quel menu sono già entrati rispetto al totale confermato
+- Una barra di avanzamento percentuale
+- Un messaggio in basso: quanti token mancano ancora da consegnare, oppure "✓ Tutti i token consegnati!" quando non ne restano
+
+---
+
+## 10. Modali e operazioni
 
 ### Modale di conferma generica
 
