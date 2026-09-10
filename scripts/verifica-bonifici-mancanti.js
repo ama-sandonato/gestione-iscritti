@@ -44,15 +44,16 @@ function estraiNumeroStrict(causale) {
   return match ? match[1].padStart(FORMATTER_LEN, '0') : null;
 }
 
-// Match "permissivo": cerca tre segnali ovunque nella causale, senza pretendere un ordine o
-// un formato fisso — un numero (1-4 cifre) come token isolato, la parola "donazione" (anche
-// minuscola/maiuscola), una variante di "ama" (con o senza punti/spazi, es. "AMA", "A.M.A.",
-// "A.M. A."). Serve per recuperare causali scritte "a mano" dai donatori senza trattino, con
-// il nome prima del codice, ecc. — che il backend (volutamente rigido) scarterebbe.
+// Match "permissivo": cerca "donazione" e una variante di "ama" VICINE tra loro (zero o più
+// spazi in mezzo — copre anche il caso limite di parole attaccate, es. "DONAZIONEAMA"), più un
+// numero (1-4 cifre) come token isolato ovunque nella causale, in qualunque ordine rispetto al
+// resto (puo comparire anche dopo la frase, non solo prima). Serve per recuperare causali
+// scritte "a mano" dai donatori nei modi più vari — senza trattino, con il nome prima del
+// codice, con codice e frase invertiti, parole unite, ecc. — che il backend (volutamente
+// rigido) scarterebbe.
 function estraiNumeroLenient(causale) {
   if (!causale) return null;
-  if (!/donazion/i.test(causale)) return null;
-  if (!/\ba\.?\s*m\.?\s*a\.?\b/i.test(causale)) return null;
+  if (!/donazion[ei]?\s*a\.?\s*m\.?\s*a\.?\b/i.test(causale)) return null;
   const match = causale.match(/\b(\d{1,4})\b/);
   return match ? match[1].padStart(FORMATTER_LEN, '0') : null;
 }
