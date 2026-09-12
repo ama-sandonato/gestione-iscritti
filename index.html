@@ -465,6 +465,67 @@
     </div>
   </div>
 
+  <!-- Modale modifica prenotazione (solo administrator) -->
+  <div id="modificaPrenotazioneModal" class="modal-issue-email">
+    <div class="modal-issue-email-maindiv" style="width: 760px;">
+      <h3>&#9881;&#65039; Modifica Prenotazione</h3>
+      <hr>
+      <p id="mpCodiceInfo" style="margin: -8px 0 4px; font-weight: 700; color: var(--deep-blue);"></p>
+
+      <div class="mp-grid">
+        <div><label>Nome</label><input type="text" id="mpNome"></div>
+        <div><label>Cognome</label><input type="text" id="mpCognome"></div>
+        <div><label>Codice Fiscale</label><input type="text" id="mpCf" style="text-transform:uppercase;"></div>
+        <div><label>Email</label><input type="email" id="mpEmail"></div>
+        <div><label>Indirizzo</label><input type="text" id="mpIndirizzo"></div>
+        <div><label>Citt&agrave;</label><input type="text" id="mpCitta"></div>
+        <div><label>Provincia</label><input type="text" id="mpProvincia" maxlength="2" style="text-transform:uppercase;"></div>
+        <div><label>Stato prenotazione</label>
+          <select id="mpStato">
+            <option value="NUOVO ISCRITTO">Nuovo Iscritto</option>
+            <option value="REGISTRATO OK">Registrazione OK</option>
+            <option value="PAGATO">Pagato</option>
+          </select>
+        </div>
+        <div><label>Adulti</label><input type="number" id="mpAdulti" min="0"></div>
+        <div><label>Bambini</label><input type="number" id="mpBambini" min="0"></div>
+        <div><label>Infanti</label><input type="number" id="mpInfanti" min="0"></div>
+        <div><label>Men&ugrave; Pizza</label><input type="number" id="mpMenu1" min="0"></div>
+        <div><label>Men&ugrave; Focaccia</label><input type="number" id="mpMenu2" min="0"></div>
+        <div><label>Birre extra</label><input type="number" id="mpBirre" min="0"></div>
+      </div>
+
+      <label class="mp-checkbox-label">
+        <input type="checkbox" id="mpInviaEmail">
+        Invia l'email specifica per lo stato selezionato (biglietto se Pagato, preiscrizione se Registrazione OK; nessuna email se Nuovo Iscritto)
+      </label>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeModificaPrenotazioneModal()">Annulla</button>
+        <button class="btn-conferma" id="mpSalvaBtn" onclick="salvaModificaPrenotazione(this)">&#128190; Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale modifica partecipanti aggiuntivi (solo administrator) -->
+  <div id="modificaPartecipantiModal" class="modal-issue-email">
+    <div class="modal-issue-email-maindiv" style="width: 620px;">
+      <h3>&#128101; Modifica Partecipanti</h3>
+      <hr>
+      <p id="mpartCodiceInfo" style="margin: -8px 0 4px; font-weight: 700; color: var(--deep-blue);"></p>
+      <p style="margin: 0 0 10px; font-size: 12px; color: #777;">Il titolare non compare in questa lista: è sempre implicitamente presente come 1 adulto.</p>
+
+      <div id="mpartLista"></div>
+
+      <button type="button" class="btn-small-outline" style="margin-top: 10px;" onclick="aggiungiRigaPartecipante()">+ Aggiungi partecipante</button>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeModificaPartecipantiModal()">Annulla</button>
+        <button class="btn-conferma" id="mpartSalvaBtn" onclick="salvaModificaPartecipanti(this)">&#128190; Salva</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Status footer -->
   <div id="status-footer">
     <div class="stat-item stat-item-clickable" onclick="openPendingPayments()" title="Apri Validazione Pagamenti">
