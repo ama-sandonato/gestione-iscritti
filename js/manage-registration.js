@@ -517,16 +517,22 @@ function formatCodiceEmail(codice) {
 }
 
 /**
- * Converte un testo semplice (con \n come a capo) in HTML sicuro da inserire nell'editor
- * contenteditable: esegue l'escape di caratteri speciali prima di sostituire i \n con <br>,
- * così eventuali caratteri come "<" nei dati (es. nome) non vengono interpretati come markup.
+ * Tagged template per popolare l'editor contenteditable con un testo che contiene GIÀ tag HTML
+ * scritti a mano nel template (es. <b>, <u>) e che devono essere renderizzati come formattazione
+ * vera. Solo i valori interpolati (${...}, dati letti dallo sheet) vengono escapati: le parti
+ * statiche del template restano intatte perché scritte dallo sviluppatore, non dall'utente finale.
+ * I \n del template vengono comunque convertiti in <br>.
  */
-function _testoAEditorHtml(testo) {
-  return testo
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
+function _templateEmailHtml(strings, ...valori) {
+  let html = strings[0];
+  valori.forEach((valore, i) => {
+    html += String(valore)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    html += strings[i + 1];
+  });
+  return html.replace(/\n/g, '<br>');
 }
 
 function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
@@ -535,7 +541,7 @@ function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
   document.getElementById('modalTitle').innerHTML = '&#128231; Invia Segnalazione';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Verifica importo bonifico - Le Mille e Una Notte 2026`;
-  document.getElementById('modalBody').innerHTML = _testoAEditorHtml(
+  document.getElementById('modalBody').innerHTML = _templateEmailHtml
 `Ciao ${nomeUtente},
 ti scriviamo in merito alla tua iscrizione alla festa "Le Mille e Una Notte 2026".
 Controllando il pagamento associato alla tua causale personale (${codiceFormattato}), abbiamo notato una differenza tra l'importo previsto e quello ricevuto.
@@ -548,8 +554,7 @@ Ci scusiamo per il disturbo e restiamo a disposizione per qualsiasi dubbio o chi
 Grazie per la collaborazione.
 
 Un caro saluto,
-AMA Crew`
-  );
+AMA Crew`;
   document.getElementById('mailModal').style.display = 'flex';
 }
 
@@ -1024,19 +1029,18 @@ function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   document.getElementById('modalTitle').innerHTML = '&#128231; Invia Sollecito';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Sollecito pagamento - Le Mille e Una Notte 2026`;
-  document.getElementById('modalBody').innerHTML = _testoAEditorHtml(
+  document.getElementById('modalBody').innerHTML = _templateEmailHtml
 `Ciao ${nome},
-ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.
+<b>ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.</b>
 Non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto:
-${codiceFormattato}
-⚠️ I POSTI SONO LIMITATI E LE RICHIESTE SONO NUMEROSE.
-Per questo motivo, ti chiediamo di effettuare il pagamento entro 24 ore dal ricevimento di questa comunicazione. In caso di mancato pagamento entro il termine indicato, saremo costretti a liberare i posti da te prenotati e ad assegnarli ad altre famiglie attualmente in lista d’attesa.
+<b>${codiceFormattato}</b>
+⚠️ <b>I POSTI SONO LIMITATI E LE RICHIESTE SONO NUMEROSE.</b>
+Per questo motivo, ti chiediamo di effettuare il pagamento <u>entro 24 ore</u> dal ricevimento di questa comunicazione. In caso di mancato pagamento entro il termine indicato, saremo costretti a liberare i posti da te prenotati e ad assegnarli ad altre famiglie attualmente in lista d’attesa.
 👉 Se hai già effettuato il bonifico, puoi stare tranquillo: ti chiediamo solo di rispondere a questa e-mail indicando gli estremi del versamento, così potremo procedere con l’immediata conferma della tua iscrizione.
 Ti invitiamo quindi a verificare e completare il pagamento il prima possibile per non rischiare di perdere il tuo posto.
 Grazie per la collaborazione.
 AMA Crew
-`
-  );
+`;
 
   document.getElementById('mailModal').style.display = 'flex';
 }
