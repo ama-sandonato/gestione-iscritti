@@ -457,7 +457,12 @@
       <label>Oggetto</label>
       <input type="text" id="modalSubject">
       <label>Messaggio</label>
-      <textarea id="modalBody"></textarea>
+      <div class="editor-toolbar">
+        <button type="button" class="editor-btn" title="Grassetto" onmousedown="event.preventDefault()" onclick="document.execCommand('bold')"><strong>B</strong></button>
+        <button type="button" class="editor-btn" title="Corsivo" onmousedown="event.preventDefault()" onclick="document.execCommand('italic')"><em>I</em></button>
+        <button type="button" class="editor-btn" title="Sottolineato" onmousedown="event.preventDefault()" onclick="document.execCommand('underline')"><u>U</u></button>
+      </div>
+      <div id="modalBody" class="editor-body" contenteditable="true"></div>
       <div class="modal-footer">
         <button class="btn-annulla" onclick="closeMailModal()">Annulla</button>
         <button class="btn-conferma" onclick="confirmSendMail(this)">Invia</button>
