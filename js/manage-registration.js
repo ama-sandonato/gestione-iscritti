@@ -1505,6 +1505,62 @@ function loadConfermati() {
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
 }
 
+/**
+ * Costruisce e scarica un CSV lato client (nessuna dipendenza esterna). Delimitatore ";" e BOM
+ * UTF-8 in testa al file: Excel in locale italiano si aspetta ";" (la "," è già il separatore
+ * decimale) e senza BOM interpreta erroneamente gli accenti in un file UTF-8.
+ */
+function _csvEscape(valore) {
+  const str = (valore === null || valore === undefined) ? '' : String(valore);
+  return /[;"\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function _scaricaCsv(nomeFile, righe) {
+  const contenuto = righe.map(riga => riga.map(_csvEscape).join(';')).join('\r\n');
+  const blob = new Blob(['﻿' + contenuto], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeFile;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function esportaConfermatiCsv(btn) {
+  btn.disabled = true;
+  const testoOriginale = btn.innerText;
+  btn.innerText = 'Preparazione...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'esportaConfermatiCompleto' })
+    .then(lista => {
+      if (!lista || lista.length === 0) {
+        alert('Nessun confermato da esportare.');
+        return;
+      }
+      const intestazione = [
+        'Cod. Bonifico', 'Cognome', 'Nome', 'Codice Fiscale', 'Email', 'Indirizzo', 'Città', 'Provincia',
+        'Adulti', 'Bambini', 'Infanti', 'Menu 1', 'Menu 2', 'Birre', 'Prezzo', 'Frequenta SMA',
+        'Data Registrazione', 'Data Conferma', 'Partecipanti Aggiuntivi'
+      ];
+      const righe = lista.map(r => [
+        r.codiceBonifico, r.cognome, r.nome, r.codiceFiscale, r.email, r.indirizzo, r.citta, r.provincia,
+        r.adulti, r.bambini, r.infanti, r.menu1, r.menu2, r.birre, r.prezzo, r.frequentaSma,
+        r.dataRegistrazione, r.dataGestione, r.partecipantiAggiuntivi
+      ]);
+      const oggi = new Date().toISOString().slice(0, 10);
+      _scaricaCsv(`confermati_${oggi}.csv`, [intestazione, ...righe]);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore durante l\'esportazione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerText = testoOriginale;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
 function showConfermati(lista) {
   _listaConfermati   = lista;
   _pageConfermati    = 0;
