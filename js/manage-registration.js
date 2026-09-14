@@ -1030,11 +1030,10 @@ function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Sollecito - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').innerHTML = _templateEmailHtml
-`Ciao ${nome},
+`<b>ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.</b>
 
-<b>ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.</b>
-
-Non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto.
+Ciao ${nome},
+non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto.
 
 Dettagli per il versamento dell'offerta:
 • IBAN: IT88Z0623033711000015114948
