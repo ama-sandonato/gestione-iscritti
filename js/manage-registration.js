@@ -516,13 +516,26 @@ function formatCodiceEmail(codice) {
   return codice.replace(/^AMA/i, '') + ' - Donazione A.M.A.';
 }
 
+/**
+ * Converte un testo semplice (con \n come a capo) in HTML sicuro da inserire nell'editor
+ * contenteditable: esegue l'escape di caratteri speciali prima di sostituire i \n con <br>,
+ * così eventuali caratteri come "<" nei dati (es. nome) non vengono interpretati come markup.
+ */
+function _testoAEditorHtml(testo) {
+  return testo
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+}
+
 function openMailModal(email, nomeUtente, codiceBonifico, prezzo, btn) {
   const codiceFormattato = formatCodiceEmail(codiceBonifico);
   const importoAtteso    = Number(prezzo).toFixed(2);
   document.getElementById('modalTitle').innerHTML = '&#128231; Invia Segnalazione';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Verifica importo bonifico - Le Mille e Una Notte 2026`;
-  document.getElementById('modalBody').value    =
+  document.getElementById('modalBody').innerHTML = _testoAEditorHtml(
 `Ciao ${nomeUtente},
 ti scriviamo in merito alla tua iscrizione alla festa "Le Mille e Una Notte 2026".
 Controllando il pagamento associato alla tua causale personale (${codiceFormattato}), abbiamo notato una differenza tra l'importo previsto e quello ricevuto.
@@ -535,7 +548,8 @@ Ci scusiamo per il disturbo e restiamo a disposizione per qualsiasi dubbio o chi
 Grazie per la collaborazione.
 
 Un caro saluto,
-AMA Crew`;
+AMA Crew`
+  );
   document.getElementById('mailModal').style.display = 'flex';
 }
 
@@ -575,15 +589,17 @@ function confirmSendMail(btn) {
   */
 
 function confirmSendMail(btn) {
-  const email   = document.getElementById('modalEmail').value;
-  const subject = document.getElementById('modalSubject').value;
-  const body    = document.getElementById('modalBody').value;
+  const email      = document.getElementById('modalEmail').value;
+  const subject    = document.getElementById('modalSubject').value;
+  const editor     = document.getElementById('modalBody');
+  const bodyHtml   = editor.innerHTML;
+  const bodyText   = editor.innerText;
 
   document.getElementById('loading-overlay').style.display = 'flex';
   btn.disabled  = true;
   btn.innerText = 'Invio in corso...';
 
-  apiCall({ action: 'sendIssueMail', formData: { destinationEmail: email, emailSubject: subject, emailBody: body } })
+  apiCall({ action: 'sendIssueMail', formData: { destinationEmail: email, emailSubject: subject, emailBodyHtml: bodyHtml, emailBodyText: bodyText } })
     .then(() => closeMailModal())
     .catch(err => { if (err !== 'auth') alert("Errore nell'invio: " + err); })
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; btn.disabled = false; btn.innerText = 'Invia'; });
@@ -1008,19 +1024,20 @@ function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   document.getElementById('modalTitle').innerHTML = '&#128231; Invia Sollecito';
   document.getElementById('modalEmail').value   = email;
   document.getElementById('modalSubject').value = `Sollecito pagamento - Le Mille e Una Notte 2026`;
-  document.getElementById('modalBody').value    =
+  document.getElementById('modalBody').innerHTML = _testoAEditorHtml(
 `Ciao ${nome},
-ti contattiamo perché non abbiamo ancora ricevuto il pagamento per confermare la tua iscrizione alla festa "Le Mille e Una Notte 2026" del 19 settembre prossimo.
-
-Ti ricordiamo che il versamento della quota di €${importoAtteso} dovrà essere effettuato tramite bonifico bancario, inserendo questa specifica causale:
+ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.
+Non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto:
 ${codiceFormattato}
+⚠️ I POSTI SONO LIMITATI E LE RICHIESTE SONO NUMEROSE.
+Per questo motivo, ti chiediamo di effettuare il pagamento entro 24 ore dal ricevimento di questa comunicazione. In caso di mancato pagamento entro il termine indicato, saremo costretti a liberare i posti da te prenotati e ad assegnarli ad altre famiglie attualmente in lista d’attesa.
+👉 Se hai già effettuato il bonifico, puoi stare tranquillo: ti chiediamo solo di rispondere a questa e-mail indicando gli estremi del versamento, così potremo procedere con l’immediata conferma della tua iscrizione.
+Ti invitiamo quindi a verificare e completare il pagamento il prima possibile per non rischiare di perdere il tuo posto.
+Grazie per la collaborazione.
+AMA Crew
+`
+  );
 
-Per aiutarci nell'organizzazione della serata e permettere una corretta gestione delle richieste ricevute, ti chiediamo gentilmente di effettuare il pagamento il prima possibile. In assenza di conferma, saremo costretti a liberare il posto per consentire ad altre famiglie attualmente in lista d'attesa di partecipare.
-
-Se invece hai già effettuato il pagamento, ti chiediamo semplicemente di rispondere a questa email indicando gli estremi del bonifico, così da poter verificare insieme.
-
-Grazie,
-AMA Crew`;
   document.getElementById('mailModal').style.display = 'flex';
 }
 
