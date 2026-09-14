@@ -271,6 +271,25 @@ function cerca(criterio, valore) {
 }
 
 // =====================
+// LINK CODICE BONIFICO -> MODIFICA PRENOTAZIONE (solo administrator)
+// =====================
+// Helper condiviso da tutte le tabelle che mostrano il "Cod. Bonifico" (Validazione Pagamenti,
+// Scordarelli, Cancellati, Confermati): se l'utente ha il permesso, il codice diventa un link
+// che apre la modale di modifica amministrativa; altrimenti resta testo semplice come oggi.
+function _renderCodiceBonifico(codiceTitolare, codiceBonifico) {
+  if (!hasPermesso('azione:modifica-prenotazione')) return `<strong>${codiceBonifico}</strong>`;
+  return `<a href="#" class="link-codice-bonifico" title="Modifica prenotazione" onclick="apriModificaPrenotazioneModal('${codiceTitolare}'); return false;"><strong>${codiceBonifico}</strong></a>`;
+}
+
+// Stesso principio, per il numero "Partec.": apre la modale di modifica dei partecipanti
+// aggiuntivi (sheet "partecipanti") invece di quella dei dati generali della prenotazione.
+function _renderPartecipantiCount(codiceTitolare, count) {
+  if (!hasPermesso('azione:modifica-prenotazione')) return `${count}`;
+  return `<a href="#" class="link-codice-bonifico" title="Modifica partecipanti" onclick="apriModificaPartecipantiModal('${codiceTitolare}'); return false;">${count}</a>`;
+}
+
+
+// =====================
 // MOSTRA RISULTATI
 // =====================
 function mostraRisultati(lista) {
@@ -291,11 +310,11 @@ function mostraRisultati(lista) {
     const tr  = document.createElement('tr');
     tr.id     = `riga-${r.codiceBonifico}`;
     tr.innerHTML = `
-      <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
+      <td title="codice titolare: ${r.codiceTitolare}">${_renderCodiceBonifico(r.codiceTitolare, r.codiceBonifico)}</td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
       <td class="cell-email cell-email-clickable" title="Modifica email" onclick="apriCorreggiEmailModal('${r.codiceTitolare}', '${r.codiceBonifico}', '${r.email}')">${r.email}</td>
-      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
+      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${_renderPartecipantiCount(r.codiceTitolare, partecipanti)}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
@@ -456,6 +475,211 @@ function apriCorreggiEmailModal(codiceTitolare, codiceBonifico, emailAttuale) {
 function closeFixEmailModal() {
   document.getElementById('fixEmailModal').style.display = 'none';
   _fixEmailCtx = null;
+}
+
+
+// =====================
+// MODALE MODIFICA PRENOTAZIONE (solo administrator)
+// =====================
+let _mpCodiceTitolare = null;
+let _mpCodiceBonifico = null;
+
+function apriModificaPrenotazioneModal(codiceTitolare) {
+  _mpCodiceTitolare = codiceTitolare;
+  _mpCodiceBonifico = null;
+  document.getElementById('mpCodiceInfo').textContent = 'Caricamento...';
+  document.getElementById('modificaPrenotazioneModal').style.display = 'flex';
+
+  apiCall({ action: 'adminCercaPrenotazione', formData: { codiceTitolare } })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Prenotazione non trovata.');
+        closeModificaPrenotazioneModal();
+        return;
+      }
+      const p = res.prenotazione;
+      _mpCodiceBonifico = p.codiceBonifico;
+      document.getElementById('mpCodiceInfo').textContent = `${p.codiceBonifico} — ${p.nome} ${p.cognome}`;
+      document.getElementById('mpNome').value      = p.nome;
+      document.getElementById('mpCognome').value   = p.cognome;
+      document.getElementById('mpCf').value        = p.cf;
+      document.getElementById('mpEmail').value     = p.email;
+      document.getElementById('mpIndirizzo').value = p.indirizzo;
+      document.getElementById('mpCitta').value     = p.citta;
+      document.getElementById('mpProvincia').value = p.provincia;
+      document.getElementById('mpStato').value     = p.stato;
+      document.getElementById('mpAdulti').value    = p.adulti;
+      document.getElementById('mpBambini').value   = p.bambini;
+      document.getElementById('mpInfanti').value   = p.infanti;
+      document.getElementById('mpMenu1').value     = p.menu1;
+      document.getElementById('mpMenu2').value     = p.menu2;
+      document.getElementById('mpBirre').value     = p.birre;
+      document.getElementById('mpInviaEmail').checked = false;
+    })
+    .catch(err => {
+      if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); }
+      closeModificaPrenotazioneModal();
+    });
+}
+
+function closeModificaPrenotazioneModal() {
+  document.getElementById('modificaPrenotazioneModal').style.display = 'none';
+  _mpCodiceTitolare = null;
+  _mpCodiceBonifico = null;
+}
+
+function salvaModificaPrenotazione(btn) {
+  if (!_mpCodiceTitolare) return;
+
+  const formData = {
+    codiceTitolare : _mpCodiceTitolare,
+    nome           : document.getElementById('mpNome').value.trim(),
+    cognome        : document.getElementById('mpCognome').value.trim(),
+    cf             : document.getElementById('mpCf').value.trim().toUpperCase(),
+    email          : document.getElementById('mpEmail').value.trim(),
+    indirizzo      : document.getElementById('mpIndirizzo').value.trim(),
+    citta          : document.getElementById('mpCitta').value.trim(),
+    provincia      : document.getElementById('mpProvincia').value.trim().toUpperCase(),
+    adulti         : Number(document.getElementById('mpAdulti').value)  || 0,
+    bambini        : Number(document.getElementById('mpBambini').value) || 0,
+    infanti        : Number(document.getElementById('mpInfanti').value) || 0,
+    menu1          : Number(document.getElementById('mpMenu1').value)   || 0,
+    menu2          : Number(document.getElementById('mpMenu2').value)   || 0,
+    birre          : Number(document.getElementById('mpBirre').value)   || 0,
+    stato          : document.getElementById('mpStato').value,
+    inviaEmail     : document.getElementById('mpInviaEmail').checked
+  };
+
+  btn.disabled = true;
+  btn.innerText = 'Salvataggio...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  const codiceBonifico = _mpCodiceBonifico;
+
+  apiCall({ action: 'adminModificaPrenotazione', formData })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Errore durante il salvataggio.');
+        return;
+      }
+      closeModificaPrenotazioneModal();
+      loadDashboardStats();
+      _refreshTabDopoModifica(codiceBonifico);
+      alert('Prenotazione aggiornata con successo.');
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerText = '💾 Salva';
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
+/**
+ * Ricarica la tabella del tab da cui è stata aperta la modale di modifica, individuandolo in
+ * base all'id della riga presente nel DOM (ogni tab usa un prefisso diverso) — senza questo,
+ * dopo il salvataggio si continuerebbero a vedere i dati vecchi finché non si ricarica a mano.
+ */
+function _refreshTabDopoModifica(codiceBonifico) {
+  if (!codiceBonifico) return;
+
+  if (document.getElementById(`riga-${codiceBonifico}`)) {
+    apiCall({ action: 'findAllPendingPayments' }).then(res => mostraRisultati(res)).catch(() => {});
+  } else if (document.getElementById(`riga-sc-${codiceBonifico}`)) {
+    loadOverdueRegistrants();
+  } else if (document.getElementById(`riga-can-${codiceBonifico}`)) {
+    loadCancellati();
+  } else if (document.getElementById(`riga-conf-${codiceBonifico}`)) {
+    loadConfermati();
+  }
+}
+
+
+// =====================
+// MODALE MODIFICA PARTECIPANTI (solo administrator)
+// =====================
+let _mpartCodiceTitolare = null;
+
+function apriModificaPartecipantiModal(codiceTitolare) {
+  _mpartCodiceTitolare = codiceTitolare;
+  document.getElementById('mpartCodiceInfo').textContent = 'Caricamento...';
+  document.getElementById('mpartLista').innerHTML = '';
+  document.getElementById('modificaPartecipantiModal').style.display = 'flex';
+
+  apiCall({ action: 'adminCercaPartecipanti', formData: { codiceTitolare } })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Errore nel caricamento dei partecipanti.');
+        closeModificaPartecipantiModal();
+        return;
+      }
+      const n = res.partecipanti.length;
+      document.getElementById('mpartCodiceInfo').textContent =
+        `${n} partecipante${n === 1 ? '' : 'i'} aggiuntiv${n === 1 ? 'o' : 'i'} (oltre al titolare)`;
+
+      if (n === 0) {
+        aggiungiRigaPartecipante();
+      } else {
+        res.partecipanti.forEach(p => aggiungiRigaPartecipante(p.nome, p.cognome, p.eta));
+      }
+    })
+    .catch(err => {
+      if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); }
+      closeModificaPartecipantiModal();
+    });
+}
+
+function aggiungiRigaPartecipante(nome = '', cognome = '', eta = 'adulto') {
+  const div = document.createElement('div');
+  div.className = 'mpart-row';
+  div.innerHTML = `
+    <input type="text" class="mpart-nome" placeholder="Nome" value="${nome}">
+    <input type="text" class="mpart-cognome" placeholder="Cognome" value="${cognome}">
+    <select class="mpart-eta">
+      <option value="adulto"${eta === 'adulto' ? ' selected' : ''}>Adulto</option>
+      <option value="bambino"${eta === 'bambino' ? ' selected' : ''}>Bambino</option>
+      <option value="infante"${eta === 'infante' ? ' selected' : ''}>Infante</option>
+    </select>
+    <button type="button" class="mpart-rimuovi" title="Rimuovi" onclick="this.closest('.mpart-row').remove()">&#10060;</button>
+  `;
+  document.getElementById('mpartLista').appendChild(div);
+}
+
+function closeModificaPartecipantiModal() {
+  document.getElementById('modificaPartecipantiModal').style.display = 'none';
+  _mpartCodiceTitolare = null;
+}
+
+function salvaModificaPartecipanti(btn) {
+  if (!_mpartCodiceTitolare) return;
+
+  const partecipanti = [...document.querySelectorAll('#mpartLista .mpart-row')]
+    .map(row => ({
+      nome    : row.querySelector('.mpart-nome').value.trim(),
+      cognome : row.querySelector('.mpart-cognome').value.trim(),
+      eta     : row.querySelector('.mpart-eta').value
+    }))
+    .filter(p => p.nome && p.cognome);
+
+  btn.disabled = true;
+  btn.innerText = 'Salvataggio...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'adminModificaPartecipanti', formData: { codiceTitolare: _mpartCodiceTitolare, partecipanti } })
+    .then(res => {
+      if (res.esito !== 'OK') {
+        alert(res.messaggio || 'Errore durante il salvataggio.');
+        return;
+      }
+      closeModificaPartecipantiModal();
+      alert('Partecipanti aggiornati con successo.');
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerText = '💾 Salva';
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
 }
 
 
@@ -915,11 +1139,11 @@ function showOverdueRegistrants(lista) {
     const tr  = document.createElement('tr');
     tr.id     = `riga-sc-${r.codiceBonifico}`;
     tr.innerHTML = `
-      <td title="codice titolare: ${r.codiceTitolare}"><strong>${r.codiceBonifico}</strong></td>
+      <td title="codice titolare: ${r.codiceTitolare}">${_renderCodiceBonifico(r.codiceTitolare, r.codiceBonifico)}</td>
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
       <td class="cell-email" title="${r.email}">${r.email}</td>
-      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
+      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${_renderPartecipantiCount(r.codiceTitolare, partecipanti)}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
@@ -1167,7 +1391,7 @@ function showCancellati(lista) {
       <td>${r.nome}</td>
       <td>${r.cognome}</td>
       <td class="cell-email" title="${r.email}">${r.email}</td>
-      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${partecipanti}</span></td>
+      <td><span class="badge" title="${r.adulti} Adulti, ${r.bambini} Minori, ${r.infanti} Infanti">${_renderPartecipantiCount(r.codiceTitolare, partecipanti)}</span></td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
@@ -1395,11 +1619,11 @@ function _renderPaginaConfermati() {
   tbody.innerHTML = slice.map(r => {
     const part = r.adulti + r.bambini + r.infanti;
     return `<tr id="riga-conf-${r.codiceBonifico}">
-      <td>${r.codiceBonifico}</td>
+      <td>${_renderCodiceBonifico(r.codiceTitolare, r.codiceBonifico)}</td>
       <td>${r.cognome}</td>
       <td>${r.nome}</td>
       <td class="cell-email" title="${r.email}">${r.email}</td>
-      <td>${part}</td>
+      <td>${_renderPartecipantiCount(r.codiceTitolare, part)}</td>
       <td>${r.menu1}</td>
       <td>${r.menu2}</td>
       <td>${r.birre}</td>
