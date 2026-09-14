@@ -1028,15 +1028,24 @@ function openMailModalSollecito(email, nome, codiceBonifico, prezzo, btn) {
   const importoAtteso    = Number(prezzo).toFixed(2);
   document.getElementById('modalTitle').innerHTML = '&#128231; Invia Sollecito';
   document.getElementById('modalEmail').value   = email;
-  document.getElementById('modalSubject').value = `Sollecito pagamento - Le Mille e Una Notte 2026`;
+  document.getElementById('modalSubject').value = `Sollecito - Le Mille e Una Notte 2026`;
   document.getElementById('modalBody').innerHTML = _templateEmailHtml
 `Ciao ${nome},
+
 <b>ATTENZIONE: LA TUA ISCRIZIONE NON È ANCORA STATA CONFERMATA.</b>
-Non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto:
-<b>${codiceFormattato}</b>
-⚠️ <b>I POSTI SONO LIMITATI E LE RICHIESTE SONO NUMEROSE.</b>
-Per questo motivo, ti chiediamo di effettuare il pagamento <u>entro 24 ore</u> dal ricevimento di questa comunicazione. In caso di mancato pagamento entro il termine indicato, saremo costretti a liberare i posti da te prenotati e ad assegnarli ad altre famiglie attualmente in lista d’attesa.
-👉 Se hai già effettuato il bonifico, puoi stare tranquillo: ti chiediamo solo di rispondere a questa e-mail indicando gli estremi del versamento, così potremo procedere con l’immediata conferma della tua iscrizione.
+
+Non avendo ancora ricevuto il pagamento della quota di €${importoAtteso}, ti chiediamo di effettuare al più presto il bonifico istantaneo per confermare il tuo posto e ricevere via mail il tuo biglietto.
+
+Dettagli per il versamento dell'offerta:
+• IBAN: IT88Z0623033711000015114948
+• Intestazione: A.M.A. ASSOCIAZIONE AMICI MARIA AUSILIATRICE A P.S.
+• Causale: <b>${codiceFormattato}</b>
+
+<b>I POSTI SONO LIMITATI E LE RICHIESTE SONO NUMEROSE.</b>
+Per questo motivo, ti chiediamo di effettuare il pagamento <u>entro 24 ore</u> dal ricevimento di questa comunicazione. In caso di mancato pagamento entro il termine indicato, saremo costretti a liberare i posti da te prenotati e ad assegnarli ad altre famiglie attualmente in lista d'attesa.
+
+Se hai già effettuato il bonifico, puoi stare tranquillo: ti chiediamo solo di rispondere a questa e-mail indicando gli estremi del versamento, così potremo procedere con l'immediata conferma della tua iscrizione.
+
 Ti invitiamo quindi a verificare e completare il pagamento il prima possibile per non rischiare di perdere il tuo posto.
 Grazie per la collaborazione.
 AMA Crew
