@@ -1199,6 +1199,31 @@ th.sortable:hover  { background: #133570; }
 }
 .btn-small-outline:hover { background: var(--deep-blue); color: white; }
 
+.btn-icon-csv {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  vertical-align: middle;
+}
+.btn-icon-csv:hover:not(:disabled)  { background: rgba(30,113,69,0.12); transform: translateY(-1px); }
+.btn-icon-csv:active:not(:disabled) { transform: translateY(0); }
+.btn-icon-csv:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-icon-csv svg { display: block; }
+
+.export-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .dashboard-loading {
   text-align: center;
   padding: 40px;

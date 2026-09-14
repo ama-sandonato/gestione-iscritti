@@ -112,6 +112,12 @@
 
       </div>
 
+      <div class="export-toolbar">
+        <button type="button" class="btn-icon-csv" id="btnEsportaPending" title="Esporta CSV" onclick="esportaPendingCsv(this)">
+          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+        </button>
+      </div>
+
       <!-- Nessun risultato -->
       <div id="nessun-risultato">&#128269; Nessun iscritto trovato per il criterio di ricerca inserito.</div>
 
@@ -216,6 +222,9 @@
             <option value="7">7 giorni</option>
           </select>
           <button class="btn-conferma" onclick="loadOverdueRegistrants()">Carica elenco</button>
+          <button type="button" class="btn-icon-csv" id="btnEsportaScordarelli" title="Esporta CSV" onclick="esportaScordarelliCsv(this)">
+            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+          </button>
         </div>
       </div>
 
@@ -305,7 +314,9 @@
       <div class="confermati-toolbar">
         <button class="btn-conferma" onclick="loadConfermati()">Carica elenco</button>
         <input type="search" id="confermati-search" class="confermati-search" placeholder="&#128269; Cerca per nome, cognome, email, codice..." oninput="cercaConfermati(this.value)" disabled>
-        <button class="btn-annulla" id="btnEsportaConfermati" onclick="esportaConfermatiCsv(this)">&#11015;&#65039; Esporta CSV</button>
+        <button type="button" class="btn-icon-csv" id="btnEsportaConfermati" title="Esporta CSV" onclick="esportaConfermatiCsv(this)">
+          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+        </button>
       </div>
 
       <!-- Nessun risultato -->

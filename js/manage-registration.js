@@ -292,6 +292,36 @@ function _renderPartecipantiCount(codiceTitolare, count) {
 // =====================
 // MOSTRA RISULTATI
 // =====================
+function esportaPendingCsv(btn) {
+  btn.disabled = true;
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'esportaPendingCompleto' })
+    .then(lista => {
+      if (!lista || lista.length === 0) {
+        alert('Nessuna prenotazione in attesa da esportare.');
+        return;
+      }
+      const intestazione = [
+        'Cod. Bonifico', 'Cognome', 'Nome', 'Codice Fiscale', 'Email', 'Indirizzo', 'Città', 'Provincia',
+        'Adulti', 'Bambini', 'Infanti', 'Menu 1', 'Menu 2', 'Birre', 'Prezzo Atteso', 'Frequenta SMA',
+        'Data Registrazione'
+      ];
+      const righe = lista.map(r => [
+        r.codiceBonifico, r.cognome, r.nome, r.codiceFiscale, r.email, r.indirizzo, r.citta, r.provincia,
+        r.adulti, r.bambini, r.infanti, r.menu1, r.menu2, r.birre, r.prezzo, r.frequentaSma,
+        r.dataRegistrazione
+      ]);
+      const oggi = new Date().toISOString().slice(0, 10);
+      _scaricaCsv(`validazione-pagamenti_${oggi}.csv`, [intestazione, ...righe]);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore durante l\'esportazione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
 function mostraRisultati(lista) {
   if (!lista || lista.length === 0) {
     document.getElementById('nessun-risultato').style.display = 'block';
@@ -1119,6 +1149,38 @@ function loadOverdueRegistrants() {
     .finally(() => { document.getElementById('loading-overlay').style.display = 'none'; });
 }
 
+function esportaScordarelliCsv(btn) {
+  const giorni = Number(document.getElementById('select-giorni').value);
+
+  btn.disabled = true;
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'esportaScordarelliCompleto', formData: { giorni } })
+    .then(lista => {
+      if (!lista || lista.length === 0) {
+        alert('Nessuno scordarello da esportare.');
+        return;
+      }
+      const intestazione = [
+        'Cod. Bonifico', 'Cognome', 'Nome', 'Codice Fiscale', 'Email', 'Indirizzo', 'Città', 'Provincia',
+        'Adulti', 'Bambini', 'Infanti', 'Menu 1', 'Menu 2', 'Birre', 'Prezzo Atteso', 'Frequenta SMA',
+        'Data Registrazione'
+      ];
+      const righe = lista.map(r => [
+        r.codiceBonifico, r.cognome, r.nome, r.codiceFiscale, r.email, r.indirizzo, r.citta, r.provincia,
+        r.adulti, r.bambini, r.infanti, r.menu1, r.menu2, r.birre, r.prezzo, r.frequentaSma,
+        r.dataRegistrazione
+      ]);
+      const oggi = new Date().toISOString().slice(0, 10);
+      _scaricaCsv(`scordarelli_${giorni}gg_${oggi}.csv`, [intestazione, ...righe]);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore durante l\'esportazione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
 function showOverdueRegistrants(lista) {
   if (!lista || lista.length === 0) {
     document.getElementById('nessun-scordarello').style.display      = 'block';
@@ -1530,8 +1592,6 @@ function _scaricaCsv(nomeFile, righe) {
 
 function esportaConfermatiCsv(btn) {
   btn.disabled = true;
-  const testoOriginale = btn.innerText;
-  btn.innerText = 'Preparazione...';
   document.getElementById('loading-overlay').style.display = 'flex';
 
   apiCall({ action: 'esportaConfermatiCompleto' })
@@ -1556,7 +1616,6 @@ function esportaConfermatiCsv(btn) {
     .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore durante l\'esportazione.'); } })
     .finally(() => {
       btn.disabled = false;
-      btn.innerText = testoOriginale;
       document.getElementById('loading-overlay').style.display = 'none';
     });
 }
