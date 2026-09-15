@@ -968,7 +968,9 @@ function aggiornaRiepilogoImportCsv() {
     `Da segnalare: <strong style="color:#e8a000;">${r.daSegnalare}</strong> &mdash; ` +
     `Già validati: <strong style="color:#999;">${(r.giaValidati || 0) + validatiOra}</strong> &mdash; ` +
     `Non trovati: <strong style="color:#c0392b;">${r.nonTrovati}</strong> &mdash; ` +
-    `Scartati: <strong style="color:#999;">${r.scartati}</strong>`;
+    `Scartati: <strong style="color:#999;">${r.scartati}</strong> &mdash; ` +
+    `Ignorati: <strong style="color:#999;">${r.ignorati || 0}</strong> &mdash; ` +
+    `Duplicati nel file: <strong style="color:#999;">${r.duplicatiNelFile || 0}</strong>`;
 }
 
 function renderRisultatiImportCsv(risultati) {
