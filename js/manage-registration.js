@@ -1623,6 +1623,81 @@ function esportaConfermatiCsv(btn) {
     });
 }
 
+/**
+ * Lista di backup per la gestione manuale degli ingressi in caso di problemi tecnici (mancata
+ * connettività per la scansione/verifica online dei QR code). Colori delle colonne Pizze/
+ * Focacce/Birre da applicare a mano in Excel dopo il download (coerenti con i token nell'app
+ * verifica-biglietti): Pizze #E53935 testo bianco, Focacce #FF8C32 testo scuro, Birre #FFD400
+ * testo scuro.
+ */
+/**
+ * Genera un vero file .xlsx (via xlsx-js-style, vendorizzata in js/vendor/xlsx-js-style.min.js
+ * — mai da CDN esterno) con le colonne Pizze/Focacce/Birre già colorate come i token nell'app
+ * verifica-biglietti, senza bisogno di colorarle a mano dopo il download.
+ *
+ * Scelta deliberata rispetto a ExcelJS (provata prima): ExcelJS ha un bug noto e documentato
+ * per cui workbook.xlsx.writeBuffer() a volte non si risolve mai nei bundle browser/minificati
+ * ("silently breaks in production" — riscontrato proprio così in test). xlsx-js-style (fork di
+ * SheetJS) scrive il file in modo SINCRONO (XLSX.write, nessuna Promise che possa restare
+ * pending), evitando alla radice quella classe di problema.
+ */
+function esportaIngressiManualeCsv(btn) {
+  btn.disabled = true;
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'esportaIngressiManualeCompleto' })
+    .then(lista => {
+      if (!lista || lista.length === 0) {
+        alert('Nessun confermato da esportare.');
+        return;
+      }
+
+      const intestazione = ['Cod. Bonifico', 'Cod. AMA', 'Cognome', 'Nome', 'Partecipanti', 'Pizze', 'Focacce', 'Birre'];
+      const righe = lista.map(r => [r.codiceBonifico, r.codiceAma, r.cognome, r.nome, r.partecipanti, r.menu1, r.menu2, r.birre]);
+
+      const worksheet = XLSX.utils.aoa_to_sheet([intestazione, ...righe]);
+      worksheet['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 13 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+
+      //intestazione in grassetto
+      intestazione.forEach((_, colIdx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx });
+        if (worksheet[cellRef]) worksheet[cellRef].s = { font: { bold: true } };
+      });
+
+      //stessi colori dei token nell'app verifica-biglietti (css/ama-pwa.css)
+      const coloreColonna = {
+        5: { sfondo: 'E53935', testo: 'FFFFFF' }, //Pizze:   rosso, testo bianco
+        6: { sfondo: 'FF8C32', testo: '1A1000' }, //Focacce: arancione, testo scuro
+        7: { sfondo: 'FFD400', testo: '1A1000' }  //Birre:   giallo, testo scuro
+      };
+      righe.forEach((_, rowIdx) => {
+        Object.entries(coloreColonna).forEach(([colIdx, { sfondo, testo }]) => {
+          const cellRef = XLSX.utils.encode_cell({ r: rowIdx + 1, c: Number(colIdx) });
+          if (worksheet[cellRef]) worksheet[cellRef].s = { fill: { fgColor: { rgb: sfondo } }, font: { color: { rgb: testo } } };
+        });
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, worksheet, 'Ingressi');
+      const arrayBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+      const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ingressi-backup-manuale_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore durante l\'esportazione.'); } })
+    .finally(() => {
+      btn.disabled = false;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
 function showConfermati(lista) {
   _listaConfermati   = lista;
   _pageConfermati    = 0;
