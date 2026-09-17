@@ -1710,6 +1710,10 @@ function esportaIngressiManualeCsv(btn) {
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, worksheet, 'Ingressi');
+      //ripete la riga di intestazione su ogni pagina in stampa ("Righe da ripetere in alto" di
+      //Excel) — a differenza dell'orientamento pagina, questa impostazione è supportata dalla
+      //libreria e viene già salvata nel file, non serve impostarla a mano dopo il download
+      wb.Workbook = { Names: [{ Sheet: 0, Name: '_xlnm.Print_Titles', Ref: "'Ingressi'!$1:$1" }] };
       const arrayBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 
       const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
