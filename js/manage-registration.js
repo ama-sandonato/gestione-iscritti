@@ -1652,28 +1652,59 @@ function esportaIngressiManualeCsv(btn) {
         return;
       }
 
-      const intestazione = ['Cod. Bonifico', 'Cod. AMA', 'Cognome', 'Nome', 'Partecipanti', 'Pizze', 'Focacce', 'Birre'];
-      const righe = lista.map(r => [r.codiceBonifico, r.codiceAma, r.cognome, r.nome, r.partecipanti, r.menu1, r.menu2, r.birre]);
+      //prima colonna vuota con un quadratino ☐: da spuntare a mano (a schermo o su stampa) man
+      //mano che le persone entrano, in caso di validazione manuale senza connettività
+      //Cod. Bonifico: SOLO i tre numeri, senza il prefisso "AMA" (richiesta esplicita) — resta
+      //testo (non numero), altrimenti si perderebbero gli eventuali zeri iniziali (es. "023"->23)
+      const intestazione = ['Ingresso', 'Cod. Bonifico', 'Cod. AMA', 'Cognome', 'Nome', 'Partecipanti', 'Pizze', 'Focacce', 'Birre'];
+      const righe = lista.map(r => [
+        '☐', r.codiceBonifico.replace(/^AMA/i, ''), r.codiceAma, r.cognome, r.nome, r.partecipanti, r.menu1, r.menu2, r.birre
+      ]);
 
       const worksheet = XLSX.utils.aoa_to_sheet([intestazione, ...righe]);
-      worksheet['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 13 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      //colonne più larghe e font generale più grande: pensato per stampare in orizzontale
+      //occupando tutto lo spazio di un A4 (nota: l'orientamento/adattamento pagina va comunque
+      //impostato a mano in Excel — Imposta pagina > Orizzontale > Adatta a 1 pagina — la
+      //libreria usata per generare il file non supporta di scriverlo lei stessa)
+      worksheet['!cols'] = [{ wch: 11 }, { wch: 15 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 11 }, { wch: 11 }, { wch: 11 }];
+
+      const FONT_BASE = 13;
 
       //intestazione in grassetto
       intestazione.forEach((_, colIdx) => {
         const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx });
-        if (worksheet[cellRef]) worksheet[cellRef].s = { font: { bold: true } };
+        if (worksheet[cellRef]) worksheet[cellRef].s = { font: { bold: true, sz: FONT_BASE } };
       });
 
-      //stessi colori dei token nell'app verifica-biglietti (css/ama-pwa.css)
+      //font più grande su tutte le celle dati (poi sovrascritto dove serve grassetto/colore)
+      righe.forEach((_, rowIdx) => {
+        for (let colIdx = 0; colIdx < intestazione.length; colIdx++) {
+          const cellRef = XLSX.utils.encode_cell({ r: rowIdx + 1, c: colIdx });
+          if (worksheet[cellRef]) worksheet[cellRef].s = { font: { sz: FONT_BASE } };
+        }
+      });
+
+      //quadratino centrato, ben visibile
+      righe.forEach((_, rowIdx) => {
+        const cellRef = XLSX.utils.encode_cell({ r: rowIdx + 1, c: 0 });
+        if (worksheet[cellRef]) worksheet[cellRef].s = { font: { sz: 18 }, alignment: { horizontal: 'center', vertical: 'center' } };
+      });
+
+      //Partecipanti/Pizze/Focacce/Birre in grassetto (richiesta esplicita, sono i numeri che
+      //contano per la consegna dei token) — Pizze/Focacce/Birre hanno anche gli stessi colori
+      //dei token nell'app verifica-biglietti (css/ama-pwa.css)
       const coloreColonna = {
-        5: { sfondo: 'E53935', testo: 'FFFFFF' }, //Pizze:   rosso, testo bianco
-        6: { sfondo: 'FF8C32', testo: '1A1000' }, //Focacce: arancione, testo scuro
-        7: { sfondo: 'FFD400', testo: '1A1000' }  //Birre:   giallo, testo scuro
+        6: { sfondo: 'E53935', testo: 'FFFFFF' }, //Pizze:   rosso, testo bianco
+        7: { sfondo: 'FF8C32', testo: '1A1000' }, //Focacce: arancione, testo scuro
+        8: { sfondo: 'FFD400', testo: '1A1000' }  //Birre:   giallo, testo scuro
       };
       righe.forEach((_, rowIdx) => {
+        const cellPartecipanti = XLSX.utils.encode_cell({ r: rowIdx + 1, c: 5 });
+        if (worksheet[cellPartecipanti]) worksheet[cellPartecipanti].s = { font: { bold: true, sz: FONT_BASE } };
+
         Object.entries(coloreColonna).forEach(([colIdx, { sfondo, testo }]) => {
           const cellRef = XLSX.utils.encode_cell({ r: rowIdx + 1, c: Number(colIdx) });
-          if (worksheet[cellRef]) worksheet[cellRef].s = { fill: { fgColor: { rgb: sfondo } }, font: { color: { rgb: testo } } };
+          if (worksheet[cellRef]) worksheet[cellRef].s = { fill: { fgColor: { rgb: sfondo } }, font: { bold: true, sz: FONT_BASE, color: { rgb: testo } } };
         });
       });
 
