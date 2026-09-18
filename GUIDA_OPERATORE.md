@@ -13,9 +13,10 @@ Questo documento descrive tutte le funzionalità disponibili nel backoffice di g
 5. [Tab: Scordarelli](#5-tab-scordarelli)
 6. [Tab: Cancellati](#6-tab-cancellati)
 7. [Tab: Confermati](#7-tab-confermati)
-8. [Tab: Dashboard Operatore](#8-tab-dashboard-operatore)
-9. [Tab: Dashboard Cucina](#9-tab-dashboard-cucina)
-10. [Modali e operazioni](#10-modali-e-operazioni)
+8. [Amministrazione (solo ruolo administrator)](#8-amministrazione-solo-ruolo-administrator)
+9. [Tab: Dashboard Operatore](#9-tab-dashboard-operatore)
+10. [Tab: Dashboard Cucina](#10-tab-dashboard-cucina)
+11. [Modali e operazioni](#11-modali-e-operazioni)
 
 ---
 
@@ -65,15 +66,17 @@ Digitare almeno 3 caratteri di nome, cognome o email e premere **Cerca** o `Invi
 
 Per ogni iscritto trovato la tabella mostra:
 
-- **Cod. Bonifico** — codice univoco del titolare (hovering mostra il codice titolare interno)
+- **Cod. Bonifico** — codice univoco del titolare (hovering mostra il codice titolare interno). **Solo per gli administrator**: il codice è cliccabile e apre la modifica amministrativa della prenotazione (vedi [Amministrazione](#8-amministrazione-solo-ruolo-administrator))
 - **Nome / Cognome**
 - **Email** — cliccabile (vedi [Correggere un'email](#correggere-unemail) più sotto)
-- **Partec.** — totale adulti + bambini + infanti (hovering mostra il dettaglio)
+- **Partec.** — totale adulti + bambini + infanti (hovering mostra il dettaglio). **Solo per gli administrator**: il numero è cliccabile e apre la modifica dei partecipanti aggiuntivi (vedi [Amministrazione](#8-amministrazione-solo-ruolo-administrator))
 - **Menu 1 / Menu 2 / Birre** — quantità prenotate
 - **Sma** — SI/NO/vuoto: se l'iscrizione include bambini/infanti, indica se frequentano la Scuola Maria Ausiliatrice
 - **Data Reg.** — data di registrazione dell'iscritto
 - **Totale** — importo atteso in €
 - **Azioni** — pulsanti *Conferma* e *Segnala*
+
+> **Esportare l'elenco**: l'icona verde in alto (foglio di calcolo) scarica un CSV con tutte le prenotazioni in attesa di pagamento (stato Registrazione OK), arricchito con i campi non visibili in tabella (Codice Fiscale, indirizzo, città, provincia).
 
 ### Correggere un'email
 
@@ -114,7 +117,13 @@ Questo tab permette di caricare l'estratto conto bancario (CSV) e far riconoscer
 
 ### Formato del file
 
-Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa`, separatore punto e virgola). Il sistema riconosce la causale scritta dal donatore quando è nel formato `<numero> - Donazione A.M.A.` (es. "035 - Donazione A.M.A."), lo stesso indicato nell'email di pre-iscrizione.
+Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data Val.;Causale;Descrizione;Importo;Divisa`, separatore punto e virgola) — **si può caricare direttamente l'estratto conto grezzo**, senza bisogno di pre-elaborarlo a mano prima.
+
+Il sistema riconosce la causale scritta dal donatore in due modi:
+- **Formato standard**: `<numero> - Donazione A.M.A.` (es. "035 - Donazione A.M.A."), lo stesso indicato nell'email di pre-iscrizione.
+- **Recupero automatico** (match tollerante): se la causale non è scritta esattamente così (refusi tipo "donaziona", "AMA" attaccato senza spazio, causale in un ordine diverso, causale preceduta da altro testo tipo "CAUSALE: 097 - Donazione A.M. A."), il sistema prova comunque a riconoscerla. Le righe recuperate in questo modo riportano nella colonna **Note** l'avviso "*Causale scritta in modo non standard... verifica*" — **vale sempre la pena dare un'occhiata in più a queste righe prima di validarle**, il recupero è automatico ma non è una certezza al 100%.
+
+Sono anche riconosciuti ed **esclusi automaticamente** (senza comparire come "non trovati") i bonifici provenienti da servizi di pagamento aggregatori (es. Satispay), che per natura non sono mai riconducibili a un singolo iscritto.
 
 ### Caricare e importare
 
@@ -122,7 +131,7 @@ Il CSV deve essere nel formato usato dall'home banking (colonne `Data Op.;Data V
 2. Il nome del file selezionato compare a fianco del pulsante.
 3. Premere **📤 Importa**.
 
-Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Già validati**, **Non trovati**, **Scartati**.
+Il sistema elabora ogni riga del file e mostra un riepilogo con i conteggi: **Validabili**, **Da segnalare**, **Già validati**, **Non trovati**, **Scartati**, **Ignorati** (ordinanti aggregatori come Satispay) e **Duplicati nel file** (lo stesso bonifico presente più volte nel file caricato, es. per export bancari con intervalli di date sovrapposti — solo la prima occorrenza resta validabile, le successive sono segnalate come duplicato).
 
 Questo riepilogo **si aggiorna in tempo reale** man mano che si valida (singolarmente o in blocco): "Validabili" scende e "Già validati" sale, senza bisogno di ricaricare il file o la pagina.
 
@@ -179,7 +188,11 @@ Gli "scordarelli" sono iscritti che si sono registrati ma non hanno ancora effet
 1. Selezionare la soglia temporale dal menu a tendina (1, 3, 5 o 7 giorni — default: 3).
 2. Premere **Carica elenco**.
 
-La tabella mostrerà tutti gli iscritti in stato *Nuovo Iscritto* (registrati ma non pagati) che hanno superato la soglia selezionata, con anche la colonna **Sma** (SI/NO/vuoto) e **Data Reg.** con la data di registrazione.
+La tabella mostrerà tutti gli iscritti in stato *Registrazione OK* (hanno ricevuto l'email di pre-iscrizione con le istruzioni per il bonifico, ma non hanno ancora pagato) che hanno superato la soglia selezionata, con anche la colonna **Sma** (SI/NO/vuoto) e **Data Reg.** con la data di registrazione.
+
+> **Esportare l'elenco**: l'icona verde in alto (foglio di calcolo) scarica un CSV con gli scordarelli **della soglia attualmente selezionata**, arricchito con i campi non visibili in tabella (Codice Fiscale, indirizzo, città, provincia).
+
+> **Solo per gli administrator**: il codice bonifico è cliccabile e apre la modifica amministrativa della prenotazione; il numero **Partec.** è cliccabile e apre la modifica dei partecipanti aggiuntivi (vedi [Amministrazione](#8-amministrazione-solo-ruolo-administrator)).
 
 ### Cancellare una prenotazione
 
@@ -221,6 +234,8 @@ La tabella mostra, oltre ai dati anagrafici e di prenotazione:
 | **Data Canc.** | Data e ora in cui è stata eseguita la cancellazione |
 | **Operatore** | Username dell'operatore che ha eseguito la cancellazione |
 
+> **Solo per gli administrator**: il numero **Partec.** è cliccabile e apre la modifica dei partecipanti aggiuntivi (vedi [Amministrazione](#8-amministrazione-solo-ruolo-administrator)) — modificare i partecipanti non tocca lo stato della prenotazione, quindi è sicuro farlo anche qui. Il codice bonifico invece **non** è cliccabile in questo tab: per cambiare lo stato di una prenotazione cancellata si usa sempre e solo il ripristino qui sotto, mai la modifica amministrativa generica.
+
 ### Ripristinare una prenotazione
 
 1. Cliccare **↺ Ripristina** sulla riga desiderata.
@@ -254,14 +269,21 @@ La tabella mostra, per ogni iscritto:
 
 | Colonna | Descrizione |
 |---|---|
-| **Cod. Bonifico** | Codice univoco del titolare |
+| **Cod. Bonifico** | Codice univoco del titolare. **Solo per gli administrator**: cliccabile, apre la modifica amministrativa della prenotazione (vedi [Amministrazione](#8-amministrazione-solo-ruolo-administrator)) |
 | **Cognome / Nome** | Dati anagrafici |
 | **Email** | Indirizzo email dell'iscritto |
-| **Partec.** | Totale adulti + bambini + infanti |
+| **Partec.** | Totale adulti + bambini + infanti. **Solo per gli administrator**: cliccabile, apre la modifica dei partecipanti aggiuntivi |
 | **Menu 1 / Menu 2 / Birre** | Quantità prenotate |
 | **Sma** | SI/NO/vuoto — se l'iscrizione include bambini/infanti, indica se frequentano la Scuola Maria Ausiliatrice |
 | **Data Reg.** | Data di registrazione dell'iscritto |
 | **Data Conf.** | Data di conferma del pagamento |
+
+### Esportare l'elenco
+
+Accanto al campo di ricerca sono disponibili due icone:
+
+- 🟩 **Esporta CSV** (verde) — scarica un CSV con tutti i confermati, arricchito con i campi non visibili in tabella (Codice Fiscale, indirizzo, città, provincia, prezzo pagato) e con i nominativi di tutti i partecipanti aggiuntivi.
+- 🟦 **Esporta lista ingressi** (blu) — scarica un vero file **.xlsx** pensato come backup per la gestione manuale degli ingressi in caso di problemi tecnici (mancata connettività per la scansione dei QR code). Contiene solo i confermati, ordinati per codice bonifico, con: una colonna **Ingresso** con un quadratino ☐ da spuntare a mano man mano che le persone entrano, il codice bonifico senza il prefisso "AMA" (solo i tre numeri), il codice AMA breve (primi 8 caratteri), cognome, nome, numero di partecipanti, e le colonne **Pizze/Focacce/Birre** già colorate come i token fisici dell'app di verifica ingressi, con i numeri in grassetto. L'intestazione si ripete automaticamente su ogni pagina se stampato. Per stampare occupando tutto lo spazio orizzontale di un foglio A4, impostare a mano in Excel: *Imposta pagina → Orizzontale → Adatta a 1 pagina*.
 
 ### Ricerca
 
@@ -304,7 +326,45 @@ Dopo l'invio il pulsante diventa **✅ Inviato** (verde) e non è più cliccabil
 
 ---
 
-## 8. Tab: Dashboard Operatore
+## 8. Amministrazione (solo ruolo administrator)
+
+Funzionalità avanzate, visibili e utilizzabili **solo** dagli utenti con ruolo administrator — non compaiono affatto per gli altri operatori. Sono raggiungibili tramite due link cliccabili che compaiono nelle tabelle di Validazione Pagamenti, Scordarelli, Cancellati e Confermati:
+
+- il **codice bonifico** apre la modifica della prenotazione (in tutti i tab tranne Cancellati);
+- il numero **Partec.** apre la modifica dei partecipanti aggiuntivi (in tutti e 4 i tab, incluso Cancellati).
+
+Sono due modali **separate e indipendenti**: si modificano prima i dati generali della prenotazione, e in un secondo momento — con un secondo click — i partecipanti aggiuntivi.
+
+### Modifica prenotazione
+
+Permette di correggere qualunque dato di una prenotazione già esistente, **a prescindere dallo stato attuale**:
+
+- Dati anagrafici: nome, cognome, codice fiscale, email, indirizzo, città, provincia.
+- Quantità: adulti, bambini, infanti, menu 1, menu 2, birre extra.
+- **Stato della prenotazione**: liberamente impostabile tra *Nuovo Iscritto*, *Registrazione OK* e *Pagato* (non è possibile impostare lo stato *Cancellato* da qui — per quello si usa sempre il flusso dedicato di cancellazione/ripristino).
+
+Al salvataggio il **preventivo viene ricalcolato automaticamente** in base ai nuovi numeri inseriti — l'unico controllo saltato rispetto al form pubblico è quello sulla capienza massima dei menu (un administrator può correggere una prenotazione anche oltre i limiti pubblici, se necessario).
+
+**Invio email**: una checkbox "Invia l'email specifica per lo stato selezionato" permette di scegliere se inviare o meno la mail corrispondente allo stato risultante (biglietto con QR se Pagato, email di pre-iscrizione se Registrazione OK, nessuna email se Nuovo Iscritto). **La checkbox è sempre deselezionata di default** ogni volta che si apre la modale: nessuna email parte mai per errore, va sempre scelto esplicitamente.
+
+> **Suggerimento**: questa funzione si può usare anche solo per **rispedire l'email di pre-iscrizione** senza modificare alcun dato — basta aprire la modale, spuntare la checkbox e salvare senza toccare nient'altro (utile per chi non l'ha mai ricevuta, senza dover cancellare e rifare la prenotazione da capo).
+
+Dopo il salvataggio, il tab da cui si è aperta la modale si aggiorna automaticamente con i nuovi dati.
+
+### Modifica partecipanti
+
+Permette di correggere la lista dei partecipanti aggiuntivi (le persone oltre al titolare) legati a una prenotazione:
+
+1. Cliccare sul numero **Partec.** nella tabella.
+2. La modale mostra i partecipanti aggiuntivi già presenti (nome, cognome, fascia età: adulto/bambino/infante), uno per riga.
+3. Usare **+ Aggiungi partecipante** per aggiungere una riga vuota, oppure la ✖ su ogni riga per rimuoverla.
+4. Premere **💾 Salva**.
+
+> **Nota**: il titolare della prenotazione non compare in questa lista — è sempre implicitamente presente come 1 adulto, gestito nella modifica della prenotazione. Il salvataggio **sostituisce integralmente** la lista dei partecipanti aggiuntivi con quella presente in modale al momento del salvataggio: le righe rimosse spariscono, le righe nuove vengono aggiunte.
+
+---
+
+## 9. Tab: Dashboard Operatore
 
 Vista di sintesi su iscrizioni, partecipanti e incassi. A differenza della barra di stato in basso, **non si aggiorna automaticamente**: i dati vengono caricati una sola volta all'apertura del tab e restano fermi finché non si preme il pulsante **↻ Aggiorna** in alto a destra (o si ricarica la pagina).
 
@@ -322,7 +382,7 @@ Tabella con una riga per **Menu 1**, **Menu 2** e **Birre**: per ciascuna, quant
 
 ---
 
-## 9. Tab: Dashboard Cucina
+## 10. Tab: Dashboard Cucina
 
 Vista pensata per chi gestisce la distribuzione dei token menu agli ingressi. Come la Dashboard Operatore, **non si aggiorna automaticamente**: usare il pulsante **↻ Aggiorna** per ricaricare i dati.
 
@@ -333,7 +393,7 @@ Per ogni menu (**Menu 1**, **Menu 2**) una card mostra:
 
 ---
 
-## 10. Modali e operazioni
+## 11. Modali e operazioni
 
 ### Modale di conferma generica
 
@@ -347,6 +407,7 @@ Si apre cliccando sull'indirizzo email in Validazione Pagamenti. Permette di cor
 
 - Il campo **Destinatario** è in sola lettura (impostato automaticamente).
 - **Oggetto** e **Messaggio** sono modificabili prima dell'invio.
+- Il campo **Messaggio** è un editor con formattazione: una piccola barra di strumenti (**B** grassetto, *I* corsivo, <u>U</u> sottolineato) permette di evidenziare parti del testo prima dell'invio — selezionare il testo desiderato e premere il pulsante di formattazione, come in un qualsiasi editor di testo.
 - Premere **Invia** per spedire l'email oppure **Annulla** per chiudere senza inviare.
 
 ### Spinner di caricamento
