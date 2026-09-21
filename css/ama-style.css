@@ -1533,3 +1533,120 @@ th.sortable:hover  { background: #133570; }
   .cucina-counter-val   { font-size: 40px; }
 }
 
+
+/* ══════════════════════════════════════
+   GESTIONE UTENTI (operatori + ruoli)
+══════════════════════════════════════ */
+.gu-sezione { margin-bottom: 28px; }
+.gu-sezione-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.gu-sezione-header h3 { color: var(--deep-blue); margin: 0; font-size: 1.05em; display: flex; align-items: center; gap: 10px; }
+.gu-sezione-azioni { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.gu-dirty-badge {
+  display: inline-block;
+  background: rgba(255,140,50,0.18);
+  color: #b35900;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.gu-badge {
+  display: inline-block;
+  max-width: 100%;
+  background: rgba(8,38,82,0.08);
+  color: var(--deep-blue);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 2px 2px 2px 0;
+  word-break: break-word;
+  white-space: normal;
+}
+.gu-badge-permesso { background: rgba(212,175,55,0.18); }
+
+.gu-checkbox-lista {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid rgba(8,38,82,0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.gu-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--deep-blue);
+  padding: 7px 2px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(8,38,82,0.06);
+}
+.gu-checkbox-item:last-child { border-bottom: none; }
+/* Il checkbox va "resettato": la regola generica .modal-issue-email-maindiv input lo
+   allargava a width:100% come se fosse un text input, spingendolo a fine riga. */
+.gu-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(8,38,82,0.3);
+  border-radius: 4px;
+  background: white;
+}
+
+/* table-layout:fixed forza le colonne a rispettare la larghezza assegnata invece di allargarsi
+   in base al contenuto. Da solo non basta: la regola globale "td { white-space: nowrap }" vince
+   comunque e fa "sfondare" i badge fuori dalla cella invece di andare a capo — va quindi
+   annullata qui sulla colonna che li contiene. */
+.gu-table { table-layout: fixed; }
+.gu-table th:nth-child(1), .gu-table td:nth-child(1) { width: 18%; word-break: break-word; white-space: normal; }
+.gu-table th:nth-child(2), .gu-table td:nth-child(2) { width: 62%; white-space: normal; }
+.gu-table th:nth-child(3), .gu-table td:nth-child(3) { width: 20%; }
+
+/* La tabella Permessi ha una colonna in più (handle di trascinamento + descrizione): colonne
+   ridefinite qui, dopo le regole generiche .gu-table, così vincono a parità di specificità. */
+.gu-table-permessi th:nth-child(1), .gu-table-permessi td:nth-child(1) { width: 6%; white-space: nowrap; }
+.gu-table-permessi th:nth-child(2), .gu-table-permessi td:nth-child(2) { width: 24%; }
+.gu-table-permessi th:nth-child(3), .gu-table-permessi td:nth-child(3) { width: 50%; white-space: normal; }
+.gu-table-permessi th:nth-child(4), .gu-table-permessi td:nth-child(4) { width: 20%; }
+
+.gu-drag-handle {
+  cursor: grab;
+  color: rgba(8,38,82,0.4);
+  font-size: 16px;
+  text-align: center;
+}
+.gu-drag-handle:hover { color: var(--deep-blue); }
+.gu-table-permessi tr.sortable-ghost { opacity: 0.4; background: rgba(255,140,50,0.12); }
+.gu-table-permessi tr.sortable-chosen .gu-drag-handle { cursor: grabbing; }
+
+.gu-azioni-cell {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gu-link-cambia-password {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-orange);
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+.gu-link-cambia-password:hover { text-decoration: underline; }
+

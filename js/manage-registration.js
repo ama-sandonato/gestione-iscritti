@@ -13,7 +13,8 @@ const TAB_PERMESSI = {
   'cancellati':           'tab:cancellati',
   'confermati':           'tab:confermati',
   'dashboard-approvator': 'tab:dashboard-approvator',
-  'dashboard-cucina':     'tab:dashboard-cucina'
+  'dashboard-cucina':     'tab:dashboard-cucina',
+  'gestione-utenti':      'tab:gestione-utenti'
 };
 
 function getToken()    { return sessionStorage.getItem(TOKEN_KEY); }
@@ -714,6 +715,493 @@ function salvaModificaPartecipanti(btn) {
 
 
 // =====================
+// GESTIONE UTENTI (operatori + ruoli + permessi, tab solo administrator)
+//
+// Modello "modifica in locale, salva a blocco": ogni sezione tiene una copia "originale"
+// (ultimo stato salvato sul server) e una copia "locale" (con le modifiche in corso). Le azioni
+// di aggiungi/modifica/elimina/riordina toccano SOLO la copia locale e rifanno il render, senza
+// alcuna chiamata di rete — solo il bottone "Salva" della sezione invia l'intera copia locale al
+// server in un colpo solo. Le validazioni di coerenza tra sezioni (es. "questo ruolo è ancora
+// assegnato a un operatore") sono quindi fatte lato server al momento del Salva, non qui.
+// =====================
+let _guOperatoriOriginale = {};
+let _guOperatoriLocale    = {};
+let _guRuoliOriginale     = {};
+let _guRuoliLocale        = {};
+let _guPermessiOriginale  = [];
+let _guPermessiLocale     = [];
+
+let _guOperatoreInModifica = null;
+let _guRuoloInModifica     = null;
+let _guPermessoInModifica  = null;
+
+let _guSortablePermessi = null;
+
+const _GU_SEZIONE_PREFISSO = { operatori: 'op', ruoli: 'ru', permessi: 'pe' };
+
+function loadGestioneUtenti() {
+  document.getElementById('gu-operatori-content').innerHTML = '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+  document.getElementById('gu-ruoli-content').innerHTML     = '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+  document.getElementById('gu-permessi-content').innerHTML  = '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+
+  Promise.all([
+    apiCall({ action: 'getUtentiERuoli' }),
+    apiCall({ action: 'getPermessiDisponibili' })
+  ])
+    .then(([resUtenti, resPermessi]) => {
+      if (resUtenti.esito !== 'OK' || resPermessi.esito !== 'OK') {
+        document.getElementById('gu-operatori-content').innerHTML = '<div class="dashboard-loading">&#10060; Errore nel caricamento dei dati.</div>';
+        document.getElementById('gu-ruoli-content').innerHTML     = '';
+        document.getElementById('gu-permessi-content').innerHTML  = '';
+        return;
+      }
+      _guOperatoriOriginale = resUtenti.operatori || {};
+      _guRuoliOriginale     = resUtenti.ruoli || {};
+      _guPermessiOriginale  = resPermessi.permessi || [];
+
+      annullaModificheSezione('operatori');
+      annullaModificheSezione('ruoli');
+      annullaModificheSezione('permessi');
+    })
+    .catch(err => {
+      if (err !== 'auth') {
+        document.getElementById('gu-operatori-content').innerHTML = '<div class="dashboard-loading">&#10060; Errore nel caricamento dei dati.</div>';
+        document.getElementById('gu-ruoli-content').innerHTML     = '';
+        document.getElementById('gu-permessi-content').innerHTML  = '';
+      }
+    });
+}
+
+function _guClone(x) { return JSON.parse(JSON.stringify(x)); }
+
+/** Riporta la sezione indicata all'ultimo stato salvato sul server, scartando le modifiche locali. */
+function annullaModificheSezione(sezione) {
+  if (sezione === 'operatori') {
+    _guOperatoriLocale = _guClone(_guOperatoriOriginale);
+    renderGuOperatori();
+  } else if (sezione === 'ruoli') {
+    _guRuoliLocale = _guClone(_guRuoliOriginale);
+    renderGuRuoli();
+  } else if (sezione === 'permessi') {
+    _guPermessiLocale = _guClone(_guPermessiOriginale);
+    renderGuPermessi();
+  }
+  aggiornaStatoSezione(sezione);
+}
+
+function _guSezioneEDirty(sezione) {
+  if (sezione === 'operatori') return JSON.stringify(_guOperatoriLocale) !== JSON.stringify(_guOperatoriOriginale);
+  if (sezione === 'ruoli')     return JSON.stringify(_guRuoliLocale)     !== JSON.stringify(_guRuoliOriginale);
+  if (sezione === 'permessi')  return JSON.stringify(_guPermessiLocale)  !== JSON.stringify(_guPermessiOriginale);
+  return false;
+}
+
+function aggiornaStatoSezione(sezione) {
+  const prefisso = _GU_SEZIONE_PREFISSO[sezione];
+  const dirty = _guSezioneEDirty(sezione);
+  document.getElementById(`gu-${prefisso}-dirty-badge`).style.display = dirty ? 'inline' : 'none';
+  document.getElementById(`gu-${prefisso}-annulla-btn`).style.display = dirty ? 'inline-block' : 'none';
+  document.getElementById(`gu-${prefisso}-salva-btn`).disabled        = !dirty;
+}
+
+// ── Sezione Operatori ────────────────────────────────────────────
+function renderGuOperatori() {
+  const usernames = Object.keys(_guOperatoriLocale).sort();
+
+  if (usernames.length === 0) {
+    document.getElementById('gu-operatori-content').innerHTML = '<p class="dashboard-loading">Nessun operatore.</p>';
+    return;
+  }
+
+  const righe = usernames.map(user => {
+    const ruoli = _guOperatoriLocale[user].ruoli || [];
+    const badge = ruoli.length
+      ? ruoli.map(r => `<span class="gu-badge">${r}</span>`).join(' ')
+      : '<em>nessun ruolo</em>';
+    return `
+      <tr>
+        <td>${user}</td>
+        <td>${badge}</td>
+        <td><div class="gu-azioni-cell">
+          <button type="button" class="btn-small-outline" onclick="apriModificaOperatoreModal('${user}')">Modifica</button>
+          <button type="button" class="btn-delete" onclick="confermaEliminaOperatore('${user}')">Elimina</button>
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('gu-operatori-content').innerHTML = `
+    <div class="table-wrapper">
+      <table class="gu-table">
+        <thead><tr><th>Username</th><th>Ruoli assegnati</th><th>Azioni</th></tr></thead>
+        <tbody>${righe}</tbody>
+      </table>
+    </div>`;
+}
+
+function apriModificaOperatoreModal(user) {
+  const isNuovo = !user;
+  _guOperatoreInModifica = user || null;
+
+  document.getElementById('guOperatoreModalTitle').innerHTML = isNuovo
+    ? '&#128100; Nuovo Operatore'
+    : `&#128100; Modifica Operatore &mdash; ${user}`;
+  document.getElementById('guOpUsername').value    = user || '';
+  document.getElementById('guOpUsername').readOnly = !isNuovo; // lo username è la chiave: non rinominabile
+  document.getElementById('guOpPassword').value    = '';
+  document.getElementById('guOpPasswordConferma').value = '';
+  document.getElementById('guOpPasswordLabel').textContent = 'Password *';
+
+  // In creazione la password è sempre visibile e obbligatoria; in modifica resta nascosta
+  // dietro un link, per non suggerire che vada ridigitata ogni volta che si tocca un ruolo.
+  document.getElementById('guOpPasswordGroup').style.display = isNuovo ? 'block' : 'none';
+  document.getElementById('guOpCambiaPasswordLink').style.display = isNuovo ? 'none' : 'block';
+
+  // I ruoli assegnabili sono solo quelli già SALVATI (non le eventuali modifiche pendenti nella
+  // sezione Ruoli): sono gli unici che il server accetterà al momento del Salva Operatori.
+  const ruoliEsistenti = Object.keys(_guRuoliOriginale).sort();
+  const ruoliAssegnati = user ? (_guOperatoriLocale[user]?.ruoli || []) : [];
+  document.getElementById('guOpRuoliLista').innerHTML = ruoliEsistenti.length
+    ? ruoliEsistenti.map(r => `
+        <label class="gu-checkbox-item">
+          <input type="checkbox" value="${r}" ${ruoliAssegnati.includes(r) ? 'checked' : ''}>
+          ${r}
+        </label>`).join('')
+    : '<em>Nessun ruolo disponibile: salvane uno prima nella sezione Ruoli.</em>';
+
+  document.getElementById('modificaOperatoreModal').style.display = 'flex';
+}
+
+function mostraCampiPasswordOperatore() {
+  document.getElementById('guOpPasswordGroup').style.display = 'block';
+  document.getElementById('guOpCambiaPasswordLink').style.display = 'none';
+  document.getElementById('guOpPassword').focus();
+}
+
+function closeModificaOperatoreModal() {
+  document.getElementById('modificaOperatoreModal').style.display = 'none';
+  _guOperatoreInModifica = null;
+}
+
+/** Applica la modale alla copia LOCALE (nessuna chiamata di rete): salvare resta un'azione a
+ * parte, con il bottone "Salva Operatori" della sezione. */
+function applicaOperatoreDaModal() {
+  const user             = document.getElementById('guOpUsername').value.trim();
+  const password          = document.getElementById('guOpPassword').value.trim();
+  const passwordConferma  = document.getElementById('guOpPasswordConferma').value.trim();
+  const ruoli             = [...document.querySelectorAll('#guOpRuoliLista input[type=checkbox]:checked')].map(cb => cb.value);
+  const isNuovo           = !_guOperatoreInModifica;
+
+  if (!user) { alert('Username obbligatorio.'); return; }
+  if (isNuovo && _guOperatoriLocale.hasOwnProperty(user)) { alert('Esiste già un operatore con questo username.'); return; }
+  if (isNuovo && !password) { alert('Password obbligatoria per un nuovo operatore.'); return; }
+  if (password && password !== passwordConferma) { alert('Le due password non coincidono.'); return; }
+
+  const nuovaEntry = { ruoli };
+  if (password) {
+    nuovaEntry._passwordNuova = password; // in chiaro, solo in memoria: consumata dal server al Salva
+  } else if (!isNuovo && _guOperatoriLocale[user] && _guOperatoriLocale[user]._passwordNuova) {
+    // riedito senza toccare la password: mantengo un eventuale cambio password già in sospeso
+    nuovaEntry._passwordNuova = _guOperatoriLocale[user]._passwordNuova;
+  }
+
+  _guOperatoriLocale[user] = nuovaEntry;
+  closeModificaOperatoreModal();
+  renderGuOperatori();
+  aggiornaStatoSezione('operatori');
+}
+
+function confermaEliminaOperatore(user) {
+  if (user === getUser()) {
+    alert('Non puoi eliminare l\'operatore con cui hai eseguito l\'accesso.');
+    return;
+  }
+  openConfirmModal(
+    `Eliminare l'operatore <strong>${user}</strong> dalla lista? Diventa definitivo solo salvando la sezione.`,
+    () => {
+      delete _guOperatoriLocale[user];
+      renderGuOperatori();
+      aggiornaStatoSezione('operatori');
+    },
+    { icon: '🗑️', title: 'Elimina Operatore' }
+  );
+}
+
+function salvaSezioneOperatoriBtn(btn) {
+  const payload = {};
+  Object.keys(_guOperatoriLocale).forEach(user => {
+    const entry = _guOperatoriLocale[user];
+    payload[user] = { ruoli: entry.ruoli || [], password: entry._passwordNuova || '' };
+  });
+
+  btn.disabled = true;
+  const testoOriginale = btn.innerText;
+  btn.innerText = 'Salvataggio...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'salvaSezioneOperatori', formData: { operatori: payload } })
+    .then(res => {
+      if (res.esito !== 'OK') { alert(res.messaggio || 'Errore durante il salvataggio.'); return; }
+      Object.keys(_guOperatoriLocale).forEach(user => { delete _guOperatoriLocale[user]._passwordNuova; });
+      _guOperatoriOriginale = _guClone(_guOperatoriLocale);
+      renderGuOperatori();
+      aggiornaStatoSezione('operatori');
+      alert('Operatori salvati con successo.');
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = _guSezioneEDirty('operatori') ? false : true;
+      btn.innerText = testoOriginale;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
+// ── Sezione Ruoli ────────────────────────────────────────────────
+function renderGuRuoli() {
+  const nomiRuoli = Object.keys(_guRuoliLocale).sort();
+
+  if (nomiRuoli.length === 0) {
+    document.getElementById('gu-ruoli-content').innerHTML = '<p class="dashboard-loading">Nessun ruolo.</p>';
+    return;
+  }
+
+  const righe = nomiRuoli.map(ruolo => {
+    const permessi = _guRuoliLocale[ruolo] || [];
+    const badge = permessi.length
+      ? permessi.map(p => `<span class="gu-badge gu-badge-permesso">${p}</span>`).join(' ')
+      : '<em>nessun permesso</em>';
+    return `
+      <tr>
+        <td>${ruolo}</td>
+        <td>${badge}</td>
+        <td><div class="gu-azioni-cell">
+          <button type="button" class="btn-small-outline" onclick="apriModificaRuoloModal('${ruolo}')">Modifica</button>
+          <button type="button" class="btn-delete" onclick="confermaEliminaRuolo('${ruolo}')">Elimina</button>
+        </div></td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('gu-ruoli-content').innerHTML = `
+    <div class="table-wrapper">
+      <table class="gu-table">
+        <thead><tr><th>Ruolo</th><th>Permessi</th><th>Azioni</th></tr></thead>
+        <tbody>${righe}</tbody>
+      </table>
+    </div>`;
+}
+
+function apriModificaRuoloModal(ruolo) {
+  const isNuovo = !ruolo;
+  _guRuoloInModifica = ruolo || null;
+
+  document.getElementById('guRuoloModalTitle').innerHTML = isNuovo
+    ? '&#128273; Nuovo Ruolo'
+    : `&#128273; Modifica Ruolo &mdash; ${ruolo}`;
+  document.getElementById('guRuNome').value    = ruolo || '';
+  document.getElementById('guRuNome').readOnly = !isNuovo; // il nome ruolo è la chiave: non rinominabile
+
+  // Solo i permessi già SALVATI sono selezionabili (checkbox nell'ordine di priorità del
+  // catalogo): il server rifiuterebbe comunque un riferimento a un permesso ancora solo
+  // "locale" nella sezione Permessi non ancora salvata.
+  const permessiAssegnati = ruolo ? (_guRuoliLocale[ruolo] || []) : [];
+  document.getElementById('guRuPermessiLista').innerHTML = _guPermessiOriginale.length
+    ? _guPermessiOriginale.map(p => `
+        <label class="gu-checkbox-item">
+          <input type="checkbox" value="${p.permesso}" ${permessiAssegnati.includes(p.permesso) ? 'checked' : ''}>
+          <span><strong>${p.permesso}</strong><br><small>${p.descrizione || ''}</small></span>
+        </label>`).join('')
+    : '<em>Nessun permesso disponibile: salvane uno prima nella sezione Permessi.</em>';
+
+  document.getElementById('modificaRuoloModal').style.display = 'flex';
+}
+
+function closeModificaRuoloModal() {
+  document.getElementById('modificaRuoloModal').style.display = 'none';
+  _guRuoloInModifica = null;
+}
+
+function applicaRuoloDaModal() {
+  const ruolo    = document.getElementById('guRuNome').value.trim();
+  const permessi = [...document.querySelectorAll('#guRuPermessiLista input[type=checkbox]:checked')].map(cb => cb.value);
+  const isNuovo  = !_guRuoloInModifica;
+
+  if (!ruolo) { alert('Nome ruolo obbligatorio.'); return; }
+  if (isNuovo && _guRuoliLocale.hasOwnProperty(ruolo)) { alert('Esiste già un ruolo con questo nome.'); return; }
+
+  _guRuoliLocale[ruolo] = permessi;
+  closeModificaRuoloModal();
+  renderGuRuoli();
+  aggiornaStatoSezione('ruoli');
+}
+
+function confermaEliminaRuolo(ruolo) {
+  const usatoDa = Object.keys(_guOperatoriOriginale).filter(u => (_guOperatoriOriginale[u].ruoli || []).includes(ruolo));
+  const avviso = usatoDa.length > 0
+    ? `<br><br>&#9888;&#65039; Attualmente assegnato a: <strong>${usatoDa.join(', ')}</strong>. Il salvataggio verrà rifiutato finché non lo rimuovi anche da lì.`
+    : '';
+  openConfirmModal(
+    `Eliminare il ruolo <strong>${ruolo}</strong> dalla lista? Diventa definitivo solo salvando la sezione.${avviso}`,
+    () => {
+      delete _guRuoliLocale[ruolo];
+      renderGuRuoli();
+      aggiornaStatoSezione('ruoli');
+    },
+    { icon: '🗑️', title: 'Elimina Ruolo' }
+  );
+}
+
+function salvaSezioneRuoliBtn(btn) {
+  btn.disabled = true;
+  const testoOriginale = btn.innerText;
+  btn.innerText = 'Salvataggio...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'salvaSezioneRuoli', formData: { ruoli: _guRuoliLocale } })
+    .then(res => {
+      if (res.esito !== 'OK') { alert(res.messaggio || 'Errore durante il salvataggio.'); return; }
+      _guRuoliOriginale = _guClone(_guRuoliLocale);
+      renderGuRuoli();
+      aggiornaStatoSezione('ruoli');
+      alert('Ruoli salvati con successo.');
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = _guSezioneEDirty('ruoli') ? false : true;
+      btn.innerText = testoOriginale;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
+// ── Sezione Permessi (riordino via drag & drop, SortableJS) ──────
+function renderGuPermessi() {
+  const permessi = _guPermessiLocale || [];
+
+  if (permessi.length === 0) {
+    document.getElementById('gu-permessi-content').innerHTML = '<p class="dashboard-loading">Nessun permesso.</p>';
+    return;
+  }
+
+  const righe = permessi.map(p => `
+    <tr data-permesso="${p.permesso}">
+      <td class="gu-drag-handle" title="Trascina per riordinare">&#9776;</td>
+      <td><span class="gu-badge gu-badge-permesso">${p.permesso}</span></td>
+      <td>${p.descrizione || ''}</td>
+      <td><div class="gu-azioni-cell">
+        <button type="button" class="btn-small-outline" onclick="apriModificaPermessoModal('${p.permesso}')">Modifica</button>
+        <button type="button" class="btn-delete" onclick="confermaEliminaPermesso('${p.permesso}')">Elimina</button>
+      </div></td>
+    </tr>`).join('');
+
+  document.getElementById('gu-permessi-content').innerHTML = `
+    <div class="table-wrapper">
+      <table class="gu-table gu-table-permessi">
+        <thead><tr><th></th><th>Permesso</th><th>Descrizione</th><th>Azioni</th></tr></thead>
+        <tbody id="gu-permessi-tbody">${righe}</tbody>
+      </table>
+    </div>`;
+
+  _guInitSortablePermessi();
+}
+
+function _guInitSortablePermessi() {
+  const tbody = document.getElementById('gu-permessi-tbody');
+  if (!tbody) return;
+  if (_guSortablePermessi) { _guSortablePermessi.destroy(); _guSortablePermessi = null; }
+  _guSortablePermessi = new Sortable(tbody, {
+    handle: '.gu-drag-handle',
+    animation: 150,
+    onEnd: () => {
+      const nuovoOrdine = [...tbody.children].map(tr => tr.dataset.permesso);
+      _guPermessiLocale.sort((a, b) => nuovoOrdine.indexOf(a.permesso) - nuovoOrdine.indexOf(b.permesso));
+      aggiornaStatoSezione('permessi');
+    }
+  });
+}
+
+function apriModificaPermessoModal(permesso) {
+  const isNuovo = !permesso;
+  _guPermessoInModifica = permesso || null;
+
+  document.getElementById('guPeModalTitle').innerHTML = isNuovo
+    ? '&#127991;&#65039; Nuovo Permesso'
+    : `&#127991;&#65039; Modifica Permesso &mdash; ${permesso}`;
+
+  const esistente = permesso ? _guPermessiLocale.find(p => p.permesso === permesso) : null;
+  document.getElementById('guPePermesso').value    = permesso || '';
+  document.getElementById('guPePermesso').readOnly = !isNuovo; // il permesso è la chiave: non rinominabile
+  document.getElementById('guPeDescrizione').value = esistente ? esistente.descrizione : '';
+
+  document.getElementById('modificaPermessoModal').style.display = 'flex';
+}
+
+function closeModificaPermessoModal() {
+  document.getElementById('modificaPermessoModal').style.display = 'none';
+  _guPermessoInModifica = null;
+}
+
+function applicaPermessoDaModal() {
+  const permesso    = document.getElementById('guPePermesso').value.trim();
+  const descrizione = document.getElementById('guPeDescrizione').value.trim();
+  const isNuovo     = !_guPermessoInModifica;
+
+  if (!permesso) { alert('Nome permesso obbligatorio.'); return; }
+  if (!descrizione) { alert('Descrizione obbligatoria.'); return; }
+  if (isNuovo && _guPermessiLocale.some(p => p.permesso === permesso)) {
+    alert('Esiste già un permesso con questo nome.');
+    return;
+  }
+
+  if (isNuovo) {
+    _guPermessiLocale.push({ permesso, descrizione });
+  } else {
+    const entry = _guPermessiLocale.find(p => p.permesso === _guPermessoInModifica);
+    if (entry) entry.descrizione = descrizione;
+  }
+
+  closeModificaPermessoModal();
+  renderGuPermessi();
+  aggiornaStatoSezione('permessi');
+}
+
+function confermaEliminaPermesso(permesso) {
+  const usatoDa = Object.keys(_guRuoliOriginale).filter(r => (_guRuoliOriginale[r] || []).includes(permesso));
+  const avviso = usatoDa.length > 0
+    ? `<br><br>&#9888;&#65039; Attualmente assegnato ai ruoli: <strong>${usatoDa.join(', ')}</strong>. Il salvataggio verrà rifiutato finché non lo rimuovi anche da lì.`
+    : '';
+  openConfirmModal(
+    `Eliminare il permesso <strong>${permesso}</strong> dalla lista? Diventa definitivo solo salvando la sezione.${avviso}`,
+    () => {
+      _guPermessiLocale = _guPermessiLocale.filter(p => p.permesso !== permesso);
+      renderGuPermessi();
+      aggiornaStatoSezione('permessi');
+    },
+    { icon: '🗑️', title: 'Elimina Permesso' }
+  );
+}
+
+function salvaSezionePermessiBtn(btn) {
+  btn.disabled = true;
+  const testoOriginale = btn.innerText;
+  btn.innerText = 'Salvataggio...';
+  document.getElementById('loading-overlay').style.display = 'flex';
+
+  apiCall({ action: 'salvaSezionePermessi', formData: { permessi: _guPermessiLocale } })
+    .then(res => {
+      if (res.esito !== 'OK') { alert(res.messaggio || 'Errore durante il salvataggio.'); return; }
+      _guPermessiOriginale = _guClone(_guPermessiLocale);
+      renderGuPermessi();
+      aggiornaStatoSezione('permessi');
+      alert('Permessi salvati con successo.');
+    })
+    .catch(err => { if (err !== 'auth') { console.error(err); alert('Errore di connessione.'); } })
+    .finally(() => {
+      btn.disabled = _guSezioneEDirty('permessi') ? false : true;
+      btn.innerText = testoOriginale;
+      document.getElementById('loading-overlay').style.display = 'none';
+    });
+}
+
+
+// =====================
 // ESITO PAGAMENTO
 // =====================
 function esitoPagamento(risposta, btn) {
@@ -882,6 +1370,7 @@ function showTab(tab) {
   document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
   document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
   document.getElementById('tab-dashboard-cucina').style.display      = tab === 'dashboard-cucina'     ? 'block' : 'none';
+  document.getElementById('tab-gestione-utenti').style.display       = tab === 'gestione-utenti'      ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
   document.getElementById('tab-btn-import-movimenti').classList.toggle('active',     tab === 'import-movimenti');
   document.getElementById('tab-btn-scordarelli').classList.toggle('active',          tab === 'scordarelli');
@@ -889,8 +1378,10 @@ function showTab(tab) {
   document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
   document.getElementById('tab-btn-dashboard-approvator').classList.toggle('active', tab === 'dashboard-approvator');
   document.getElementById('tab-btn-dashboard-cucina').classList.toggle('active',     tab === 'dashboard-cucina');
+  document.getElementById('tab-btn-gestione-utenti').classList.toggle('active',      tab === 'gestione-utenti');
   if (tab === 'dashboard-approvator') loadDashboardApprovator();
   if (tab === 'dashboard-cucina')     loadDashboardCucina();
+  if (tab === 'gestione-utenti')      loadGestioneUtenti();
 }
 
 
