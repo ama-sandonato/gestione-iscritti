@@ -1555,9 +1555,20 @@ let _filteredConfermati = [];
 let _pageConfermati     = 0;
 let _sortConfermatiKey  = null;
 let _sortConfermatiDir  = 0;   // 0=originale, 1=discendente, 2=ascendente
+let _filtroStatoConfermati = ''; // '' = tutti, 'PAGATO', 'ENTRATO'
 const PAGE_SIZE_CONFERMATI = 25;
 
-const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome', 'dataRegistrazione', 'dataGestione'];
+const _CONF_SORT_COLS = ['codiceBonifico', 'cognome', 'nome', 'stato', 'dataRegistrazione', 'dataGestione'];
+
+/**
+ * Etichetta colorata per lo stato — stessi colori usati lato BE per
+ * REGISTRATION_STATUS_COLOR_MAP (PAGATO/ENTRATO), per coerenza visiva in tutto il sistema.
+ */
+function _renderStatoBadge(stato) {
+  const classe = stato === 'ENTRATO' ? 'badge-stato-entrato' : 'badge-stato-pagato';
+  const etichetta = stato === 'ENTRATO' ? 'Entrato' : 'Pagato';
+  return `<span class="badge-stato ${classe}">${etichetta}</span>`;
+}
 
 function loadConfermati() {
   document.getElementById('loading-overlay').style.display       = 'flex';
@@ -1605,13 +1616,13 @@ function esportaConfermatiCsv(btn) {
       }
       const intestazione = [
         'Cod. Bonifico', 'Cognome', 'Nome', 'Codice Fiscale', 'Email', 'Indirizzo', 'Città', 'Provincia',
-        'Adulti', 'Bambini', 'Infanti', 'Menu 1', 'Menu 2', 'Birre', 'Prezzo', 'Frequenta SMA',
-        'Data Registrazione', 'Data Conferma', 'Partecipanti Aggiuntivi'
+        'Adulti', 'Bambini', 'Infanti', 'Menu 1', 'Menu 2', 'Birre', 'Prezzo', 'Frequenta SMA', 'Stato',
+        'Data Registrazione', 'Data Conferma', 'Data Ingresso', 'Operatore Ingresso', 'Partecipanti Aggiuntivi'
       ];
       const righe = lista.map(r => [
         r.codiceBonifico, r.cognome, r.nome, r.codiceFiscale, r.email, r.indirizzo, r.citta, r.provincia,
-        r.adulti, r.bambini, r.infanti, r.menu1, r.menu2, r.birre, r.prezzo, r.frequentaSma,
-        r.dataRegistrazione, r.dataGestione, r.partecipantiAggiuntivi
+        r.adulti, r.bambini, r.infanti, r.menu1, r.menu2, r.birre, r.prezzo, r.frequentaSma, r.stato,
+        r.dataRegistrazione, r.dataGestione, r.dataIngresso, r.operatoreIngresso, r.partecipantiAggiuntivi
       ]);
       const oggi = new Date().toISOString().slice(0, 10);
       _scaricaCsv(`confermati_${oggi}.csv`, [intestazione, ...righe]);
@@ -1738,22 +1749,37 @@ function showConfermati(lista) {
   _pageConfermati    = 0;
   _sortConfermatiKey = null;
   _sortConfermatiDir = 0;
+  _filtroStatoConfermati = '';
+  document.querySelectorAll('#filtro-stato-confermati .filtro-stato-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.stato === '');
+  });
   document.getElementById('confermati-search').disabled = false;
   document.getElementById('confermati-search').value    = '';
   cercaConfermati('');
 }
 
+/** Filtro per stato (Tutti/Pagato/Entrato), applicato insieme alla ricerca testuale già attiva. */
+function filtraStatoConfermati(stato, btn) {
+  _filtroStatoConfermati = stato;
+  document.querySelectorAll('#filtro-stato-confermati .filtro-stato-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  cercaConfermati(document.getElementById('confermati-search').value);
+}
+
 function cercaConfermati(q) {
   const needle = q.trim().toLowerCase();
+  const base = _filtroStatoConfermati
+    ? _listaConfermati.filter(r => r.stato === _filtroStatoConfermati)
+    : _listaConfermati;
   _filteredConfermati = needle
-    ? _listaConfermati.filter(r =>
+    ? base.filter(r =>
         r.nome.toLowerCase().includes(needle)           ||
         r.cognome.toLowerCase().includes(needle)        ||
         r.email.toLowerCase().includes(needle)          ||
         r.codiceBonifico.toLowerCase().includes(needle) ||
         (r.dataRegistrazione || '').includes(needle)
       )
-    : _listaConfermati.slice();
+    : base.slice();
   _applySortConfermati();
   _pageConfermati = 0;
   _renderPaginaConfermati();
@@ -1852,12 +1878,10 @@ function _renderPaginaConfermati() {
       <td>${r.nome}</td>
       <td class="cell-email" title="${r.email}">${r.email}</td>
       <td>${_renderPartecipantiCount(r.codiceTitolare, part)}</td>
-      <td>${r.menu1}</td>
-      <td>${r.menu2}</td>
-      <td>${r.birre}</td>
-      <td>${r.frequentaSma || '&#8212;'}</td>
+      <td>${_renderStatoBadge(r.stato)}</td>
       <td>${r.dataRegistrazione || '&#8212;'}</td>
       <td>${r.dataGestione || '&#8212;'}</td>
+      <td title="${r.operatoreIngresso ? 'Operatore: ' + r.operatoreIngresso : ''}">${r.dataIngresso || '&#8212;'}</td>
       <td>
         <button class="btn-resend"
           id="btn-resend-${r.codiceBonifico}"
