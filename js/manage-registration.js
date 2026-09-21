@@ -14,6 +14,7 @@ const TAB_PERMESSI = {
   'confermati':           'tab:confermati',
   'dashboard-approvator': 'tab:dashboard-approvator',
   'dashboard-cucina':     'tab:dashboard-cucina',
+  'report':               'tab:report',
   'gestione-utenti':      'tab:gestione-utenti'
 };
 
@@ -1370,6 +1371,7 @@ function showTab(tab) {
   document.getElementById('tab-confermati').style.display          = tab === 'confermati'           ? 'block' : 'none';
   document.getElementById('tab-dashboard-approvator').style.display = tab === 'dashboard-approvator' ? 'block' : 'none';
   document.getElementById('tab-dashboard-cucina').style.display      = tab === 'dashboard-cucina'     ? 'block' : 'none';
+  document.getElementById('tab-report').style.display                = tab === 'report'               ? 'block' : 'none';
   document.getElementById('tab-gestione-utenti').style.display       = tab === 'gestione-utenti'      ? 'block' : 'none';
   document.getElementById('tab-btn-pagamenti').classList.toggle('active',            tab === 'pagamenti');
   document.getElementById('tab-btn-import-movimenti').classList.toggle('active',     tab === 'import-movimenti');
@@ -1378,9 +1380,11 @@ function showTab(tab) {
   document.getElementById('tab-btn-confermati').classList.toggle('active',           tab === 'confermati');
   document.getElementById('tab-btn-dashboard-approvator').classList.toggle('active', tab === 'dashboard-approvator');
   document.getElementById('tab-btn-dashboard-cucina').classList.toggle('active',     tab === 'dashboard-cucina');
+  document.getElementById('tab-btn-report').classList.toggle('active',               tab === 'report');
   document.getElementById('tab-btn-gestione-utenti').classList.toggle('active',      tab === 'gestione-utenti');
   if (tab === 'dashboard-approvator') loadDashboardApprovator();
   if (tab === 'dashboard-cucina')     loadDashboardCucina();
+  if (tab === 'report')               loadReport();
   if (tab === 'gestione-utenti')      loadGestioneUtenti();
 }
 
@@ -2654,4 +2658,192 @@ function renderDashboardCucina(data) {
       ${cucinaCard('&#127789;', 'Menu 2', menu2.entrati, menu2.confermati)}
     </div>
   `;
+}
+
+
+// =====================
+// REPORT (statistiche post-evento)
+// =====================
+let _reportCharts = {}; // canvasId -> istanza Chart.js, per distruggerle prima di ridisegnare
+
+// Colori dalla palette validata (skill dataviz): slot 1/2/3 dell'ordine categoriale, gli unici
+// tre garantiti "all-pairs" CVD-safe insieme. Ingressi in violetto per coerenza con il badge
+// "Entrato" già usato nel tab Confermati (stessa famiglia di colore per lo stesso concetto).
+const _REPORT_COLORE = {
+  iscrizioni: '#2a78d6', // blu
+  pagamenti:  '#eb6834', // arancione
+  ingressi:   '#4a3aa7'  // violetto
+};
+
+function loadReport() {
+  document.getElementById('report-content').innerHTML =
+    '<div class="dashboard-loading">&#8987; Caricamento in corso...</div>';
+
+  apiCall({ action: 'getStatisticheReport' })
+    .then(data => renderReport(data))
+    .catch(err => {
+      if (err !== 'auth') {
+        document.getElementById('report-content').innerHTML =
+          '<div class="dashboard-loading">&#10060; Errore nel caricamento dei dati.</div>';
+      }
+    });
+}
+
+function renderReport(data) {
+  const { riepilogo: r, serieTemporali: s } = data;
+
+  const tile = (label, value, sub) => `
+    <div class="report-tile">
+      <div class="report-tile-val">${value}</div>
+      <div class="report-tile-lbl">${label}</div>
+      ${sub ? `<div class="report-tile-sub">${sub}</div>` : ''}
+    </div>`;
+
+  const oraDa = (dt) => dt ? dt.split(' ')[1] : '&#8212;';
+
+  const _ingressiOraAttivi = _ritagliaOreAttive(s.ingressiPerMezzora);
+
+  document.getElementById('report-content').innerHTML = `
+    <div class="report-tiles">
+      ${tile('Iscritti totali', r.totaleIscritti)}
+      ${tile('Confermati (pagato)', r.totalePagati)}
+      ${tile('Entrati', r.totaleEntrati)}
+      ${tile('No-show', r.noShow, r.totalePagati > 0 ? r.percentualeNoShow + '% dei pagati' : '')}
+      ${tile('Cancellati', r.totaleCancellati)}
+      ${tile('Tempo medio reg.&rarr;pag.', r.tempoMedioRegistrazionePagamentoOre !== null ? r.tempoMedioRegistrazionePagamentoOre + ' h' : '&#8212;')}
+      ${tile('Ritmo ingressi (mediana)', r.medianaIntervalloIngressiSecondi !== null ? _formattaSecondi(r.medianaIntervalloIngressiSecondi) : '&#8212;', 'tra un ingresso e il successivo')}
+      ${tile('Primo &rarr; ultimo ingresso', r.primoIngresso ? oraDa(r.primoIngresso) + ' &rarr; ' + oraDa(r.ultimoIngresso) : '&#8212;')}
+    </div>
+
+    <div class="report-charts-row">
+      <div class="report-chart-box">
+        <h3>Iscrizioni per giorno</h3>
+        <canvas id="chart-iscrizioni-giorno"></canvas>
+        ${_tabellaToggle('tbl-iscrizioni-giorno', ['Giorno', 'Iscrizioni'], s.iscrizioniPerGiorno.map(x => [x.data, x.conteggio]))}
+      </div>
+      <div class="report-chart-box">
+        <h3>Iscrizioni per fascia oraria</h3>
+        <canvas id="chart-iscrizioni-ora"></canvas>
+        ${_tabellaToggle('tbl-iscrizioni-ora', ['Ora', 'Iscrizioni'], s.iscrizioniPerOra.map((v, i) => [i + ':00', v]))}
+      </div>
+    </div>
+    <div class="report-charts-row">
+      <div class="report-chart-box">
+        <h3>Validazioni per giorno</h3>
+        <canvas id="chart-pagamenti-giorno"></canvas>
+        ${_tabellaToggle('tbl-pagamenti-giorno', ['Giorno', 'Validazioni'], s.pagamentiPerGiorno.map(x => [x.data, x.conteggio]))}
+      </div>
+      <div class="report-chart-box">
+        <h3>Validazioni per fascia oraria</h3>
+        <canvas id="chart-pagamenti-ora"></canvas>
+        ${_tabellaToggle('tbl-pagamenti-ora', ['Ora', 'Validazioni'], s.pagamentiPerOra.map((v, i) => [i + ':00', v]))}
+      </div>
+    </div>
+    <div class="report-charts-row report-charts-row-single">
+      <div class="report-chart-box">
+        <h3>Ingressi ogni 30 minuti (giorno evento)</h3>
+        <canvas id="chart-ingressi-ora"></canvas>
+        ${_tabellaToggle('tbl-ingressi-ora', ['Ora', 'Ingressi'], _ingressiOraAttivi.righe)}
+      </div>
+    </div>
+  `;
+
+  _renderBarChart('chart-iscrizioni-giorno', s.iscrizioniPerGiorno.map(x => x.data), s.iscrizioniPerGiorno.map(x => x.conteggio), _REPORT_COLORE.iscrizioni);
+  _renderBarChart('chart-pagamenti-giorno',  s.pagamentiPerGiorno.map(x => x.data),  s.pagamentiPerGiorno.map(x => x.conteggio),  _REPORT_COLORE.pagamenti);
+  _renderBarChart('chart-iscrizioni-ora', _oreLabels(), s.iscrizioniPerOra, _REPORT_COLORE.iscrizioni, { oreComplete: true });
+  _renderBarChart('chart-pagamenti-ora',  _oreLabels(), s.pagamentiPerOra,  _REPORT_COLORE.pagamenti,  { oreComplete: true });
+  _renderBarChart('chart-ingressi-ora',   _ingressiOraAttivi.labels, _ingressiOraAttivi.valori, _REPORT_COLORE.ingressi, { oreComplete: true });
+}
+
+/**
+ * Ritaglia un array di fasce da mezz'ora (48 valori) alla sola parte "attiva": dalla prima alla
+ * ultima mezz'ora con almeno un ingresso, inclusi eventuali zeri in mezzo (es. un calo
+ * momentaneo). Fuori da quella fascia non c'è nulla da mostrare (giorno evento, non l'intera
+ * giornata).
+ */
+function _ritagliaOreAttive(valoriPerMezzora) {
+  const primo = valoriPerMezzora.findIndex(v => v > 0);
+  if (primo === -1) return { labels: [], valori: [], righe: [] };
+  let ultimo = primo;
+  for (let i = valoriPerMezzora.length - 1; i >= 0; i--) {
+    if (valoriPerMezzora[i] > 0) { ultimo = i; break; }
+  }
+  const labels = _mezzoreLabels().slice(primo, ultimo + 1);
+  const valori = valoriPerMezzora.slice(primo, ultimo + 1);
+  const righe = valori.map((v, i) => [labels[i], v]);
+  return { labels, valori, righe };
+}
+
+function _oreLabels() {
+  return Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0') + ':00');
+}
+
+/** Etichette a fasce da 30 minuti: indice 0 = "00:00", indice 1 = "00:30", ecc. */
+function _mezzoreLabels() {
+  return Array.from({ length: 48 }, (_, i) =>
+    String(Math.floor(i / 2)).padStart(2, '0') + ':' + (i % 2 === 0 ? '00' : '30'));
+}
+
+function _formattaSecondi(sec) {
+  if (sec < 60)   return Math.round(sec) + ' sec';
+  if (sec < 3600) return Math.round(sec / 60) + ' min';
+  return (Math.round(sec / 360) / 10) + ' h';
+}
+
+/** Tabella accessibile alternativa al grafico, dietro un <details> nativo (niente JS di toggle
+ * da scrivere/mantenere, accessibile da tastiera di suo). */
+function _tabellaToggle(id, headers, righe) {
+  if (!righe || righe.length === 0) return '';
+  const theadHtml = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+  const tbodyHtml = righe.map(riga => `<tr>${riga.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+  return `
+    <details class="report-table-toggle" id="${id}">
+      <summary>Mostra tabella dati</summary>
+      <div class="table-wrapper">
+        <table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table>
+      </div>
+    </details>`;
+}
+
+/**
+ * Grafico a barre monocromatico (una sola serie per grafico): niente legenda (non serve per una
+ * serie sola, il titolo del box la identifica già), tooltip attivo al passaggio del mouse,
+ * nessun doppio asse, barre sottili con estremità arrotondate. Vedi skill "dataviz".
+ */
+function _renderBarChart(canvasId, labels, dati, colore, opzioni) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (_reportCharts[canvasId]) _reportCharts[canvasId].destroy();
+
+  // Chart.js di default "salta" le etichette dell'asse x quando non c'è spazio (autoSkip),
+  // mostrandone una ogni due: per i grafici orari (24 categorie) vogliamo sempre una barra e
+  // un'etichetta per ogni ora, quindi disattiviamo autoSkip e ruotiamo/rimpiccioliamo il testo.
+  const oreComplete = !!(opzioni && opzioni.oreComplete);
+  const xTicks = oreComplete
+    ? { autoSkip: false, maxRotation: 90, minRotation: 45, font: { size: 9 } }
+    : {};
+
+  _reportCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: dati,
+        backgroundColor: colore,
+        borderRadius: 4,
+        maxBarThickness: 28
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend:  { display: false },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: xTicks },
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } }
+      }
+    }
+  });
 }
