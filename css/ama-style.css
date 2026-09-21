@@ -441,6 +441,46 @@ tr.import-riga-neutra td  { background: rgba(153,153,153,0.12) !important; color
   border: 1px solid rgba(212,175,55,0.4);
 }
 
+/* Stessi colori usati lato BE per REGISTRATION_STATUS_COLOR_MAP (PAGATO/ENTRATO) */
+.badge-stato {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.badge-stato-pagato  { background: #bfe1f6; color: var(--deep-blue); }
+.badge-stato-entrato { background: #e6cff2; color: var(--deep-blue); }
+
+/* Filtro per stato (Tutti/Pagato/Entrato) — stessa grafica "a pillola" dei badge, con contorno
+   evidenziato per l'opzione attiva */
+.filtro-stato-group {
+  display: inline-flex;
+  gap: 6px;
+}
+.filtro-stato-btn {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 2px solid transparent;
+  background: rgba(8,38,82,0.08);
+  color: var(--deep-blue);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.filtro-stato-btn:hover { opacity: 0.85; }
+.filtro-stato-btn.active {
+  opacity: 1;
+  border-color: var(--deep-blue);
+}
+
 .totale {
   font-weight: 800;
   color: var(--deep-blue);
