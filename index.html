@@ -8,6 +8,7 @@
   <link rel="icon" type="image/x-icon" href="./favicon.ico">
   <script src="./js/config.js"></script>
   <script src="./js/vendor/xlsx-js-style.min.js"></script>
+  <script src="./js/vendor/Sortable.min.js"></script>
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
@@ -63,6 +64,7 @@
       <button class="tab-btn" id="tab-btn-confermati" onclick="showTab('confermati')">&#10003; Confermati</button>
       <button class="tab-btn" id="tab-btn-dashboard-approvator" onclick="showTab('dashboard-approvator')">&#128202; Dashboard</button>
       <button class="tab-btn" id="tab-btn-dashboard-cucina" onclick="showTab('dashboard-cucina')">&#127829; Cucina</button>
+      <button class="tab-btn" id="tab-btn-gestione-utenti" onclick="showTab('gestione-utenti')">&#128100; Gestione Utenti</button>
     </div>
 
     <!-- ══════════════════════════════════════════ -->
@@ -384,6 +386,55 @@
       </div>
     </div><!-- /tab-dashboard-cucina -->
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: Gestione Utenti (solo administrator)  -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-gestione-utenti" style="display:none;">
+      <div class="dashboard-toolbar">
+        <h2 class="tab-title-inline">&#128100; Gestione Utenti</h2>
+        <button class="btn-small-outline" onclick="loadGestioneUtenti()">&#8635; Aggiorna</button>
+      </div>
+
+      <div class="gu-sezione">
+        <div class="gu-sezione-header">
+          <h3>Operatori <span id="gu-op-dirty-badge" class="gu-dirty-badge" style="display:none;">&#9679; modifiche non salvate</span></h3>
+          <div class="gu-sezione-azioni">
+            <button type="button" class="btn-small-outline" onclick="apriModificaOperatoreModal()">+ Nuovo operatore</button>
+            <button type="button" class="btn-annulla" id="gu-op-annulla-btn" style="display:none;" onclick="annullaModificheSezione('operatori')">Annulla modifiche</button>
+            <button type="button" class="btn-conferma" id="gu-op-salva-btn" disabled onclick="salvaSezioneOperatoriBtn(this)">&#128190; Salva Operatori</button>
+          </div>
+        </div>
+        <div id="gu-operatori-content"><div class="dashboard-loading">Apertura tab per caricare i dati.</div></div>
+      </div>
+
+      <div class="gu-sezione">
+        <div class="gu-sezione-header">
+          <h3>Ruoli <span id="gu-ru-dirty-badge" class="gu-dirty-badge" style="display:none;">&#9679; modifiche non salvate</span></h3>
+          <div class="gu-sezione-azioni">
+            <button type="button" class="btn-small-outline" onclick="apriModificaRuoloModal()">+ Nuovo ruolo</button>
+            <button type="button" class="btn-annulla" id="gu-ru-annulla-btn" style="display:none;" onclick="annullaModificheSezione('ruoli')">Annulla modifiche</button>
+            <button type="button" class="btn-conferma" id="gu-ru-salva-btn" disabled onclick="salvaSezioneRuoliBtn(this)">&#128190; Salva Ruoli</button>
+          </div>
+        </div>
+        <div id="gu-ruoli-content"><div class="dashboard-loading">Apertura tab per caricare i dati.</div></div>
+      </div>
+
+      <div class="gu-sezione">
+        <div class="gu-sezione-header">
+          <h3>Permessi <span id="gu-pe-dirty-badge" class="gu-dirty-badge" style="display:none;">&#9679; modifiche non salvate</span></h3>
+          <div class="gu-sezione-azioni">
+            <button type="button" class="btn-small-outline" onclick="apriModificaPermessoModal()">+ Nuovo permesso</button>
+            <button type="button" class="btn-annulla" id="gu-pe-annulla-btn" style="display:none;" onclick="annullaModificheSezione('permessi')">Annulla modifiche</button>
+            <button type="button" class="btn-conferma" id="gu-pe-salva-btn" disabled onclick="salvaSezionePermessiBtn(this)">&#128190; Salva Permessi</button>
+          </div>
+        </div>
+        <p style="margin: -6px 0 10px; font-size: 12px; color: #777;">
+          Elenco dei permessi che l'applicazione conosce. Trascina le righe per cambiarne la priorità (dal più al meno importante/sensibile). Usato per comporre i ruoli qui sopra — solo i permessi già salvati sono assegnabili a un ruolo.
+        </p>
+        <div id="gu-permessi-content"><div class="dashboard-loading">Apertura tab per caricare i dati.</div></div>
+      </div>
+    </div><!-- /tab-gestione-utenti -->
+
   </div><!-- /main-card -->
 
   <!-- Modale reinoltro biglietto -->
@@ -546,6 +597,81 @@
       <div class="modal-footer">
         <button class="btn-annulla" onclick="closeModificaPartecipantiModal()">Annulla</button>
         <button class="btn-conferma" id="mpartSalvaBtn" onclick="salvaModificaPartecipanti(this)">&#128190; Salva</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale crea/modifica operatore (tab Gestione Utenti, solo administrator) -->
+  <div id="modificaOperatoreModal" class="modal-issue-email">
+    <div class="modal-issue-email-maindiv" style="width: 480px;">
+      <h3 id="guOperatoreModalTitle">&#128100; Nuovo Operatore</h3>
+      <hr>
+      <div style="margin-bottom: 12px;">
+        <label>Username</label>
+        <input type="text" id="guOpUsername" autocomplete="off">
+      </div>
+      <div id="guOpPasswordGroup">
+        <div style="margin-bottom: 12px;">
+          <label id="guOpPasswordLabel">Password</label>
+          <input type="password" id="guOpPassword" autocomplete="new-password">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label>Conferma Password</label>
+          <input type="password" id="guOpPasswordConferma" autocomplete="new-password">
+        </div>
+      </div>
+      <a href="#" id="guOpCambiaPasswordLink" class="gu-link-cambia-password" style="display:none;"
+         onclick="mostraCampiPasswordOperatore(); return false;">&#128273; Cambia password operatore</a>
+      <div>
+        <label>Ruoli assegnati</label>
+        <div id="guOpRuoliLista" class="gu-checkbox-lista"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeModificaOperatoreModal()">Annulla</button>
+        <button class="btn-conferma" id="guOpSalvaBtn" onclick="applicaOperatoreDaModal(this)">&#10003; Applica</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale crea/modifica ruolo (tab Gestione Utenti, solo administrator) -->
+  <div id="modificaRuoloModal" class="modal-issue-email">
+    <div class="modal-issue-email-maindiv" style="width: 540px;">
+      <h3 id="guRuoloModalTitle">&#128273; Nuovo Ruolo</h3>
+      <hr>
+      <div style="margin-bottom: 12px;">
+        <label>Nome ruolo</label>
+        <input type="text" id="guRuNome" autocomplete="off">
+      </div>
+      <div>
+        <label>Permessi assegnati &mdash; solo quelli già salvati nella sezione Permessi</label>
+        <div id="guRuPermessiLista" class="gu-checkbox-lista"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeModificaRuoloModal()">Annulla</button>
+        <button class="btn-conferma" id="guRuSalvaBtn" onclick="applicaRuoloDaModal(this)">&#10003; Applica</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale crea/modifica permesso (tab Gestione Utenti, solo administrator) -->
+  <div id="modificaPermessoModal" class="modal-issue-email">
+    <div class="modal-issue-email-maindiv" style="width: 480px;">
+      <h3 id="guPeModalTitle">&#127991;&#65039; Nuovo Permesso</h3>
+      <hr>
+      <div style="margin-bottom: 12px;">
+        <label>Permesso (es. <code>tab:esempio</code>, <code>azione:esempio</code>)</label>
+        <input type="text" id="guPePermesso" autocomplete="off" placeholder="tab:esempio">
+      </div>
+      <div>
+        <label>Descrizione</label>
+        <textarea id="guPeDescrizione" rows="3" style="width:100%;"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="closeModificaPermessoModal()">Annulla</button>
+        <button class="btn-conferma" id="guPeSalvaBtn" onclick="applicaPermessoDaModal(this)">&#10003; Applica</button>
       </div>
     </div>
   </div>
