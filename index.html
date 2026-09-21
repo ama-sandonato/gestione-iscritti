@@ -9,6 +9,7 @@
   <script src="./js/config.js"></script>
   <script src="./js/vendor/xlsx-js-style.min.js"></script>
   <script src="./js/vendor/Sortable.min.js"></script>
+  <script src="./js/vendor/chart.umd.min.js"></script>
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
@@ -64,6 +65,7 @@
       <button class="tab-btn" id="tab-btn-confermati" onclick="showTab('confermati')">&#10003; Confermati</button>
       <button class="tab-btn" id="tab-btn-dashboard-approvator" onclick="showTab('dashboard-approvator')">&#128202; Dashboard</button>
       <button class="tab-btn" id="tab-btn-dashboard-cucina" onclick="showTab('dashboard-cucina')">&#127829; Cucina</button>
+      <button class="tab-btn" id="tab-btn-report" onclick="showTab('report')">&#128200; Report</button>
       <button class="tab-btn" id="tab-btn-gestione-utenti" onclick="showTab('gestione-utenti')">&#128100; Gestione Utenti</button>
     </div>
 
@@ -385,6 +387,26 @@
         <div class="dashboard-loading">Apertura tab per caricare i dati.</div>
       </div>
     </div><!-- /tab-dashboard-cucina -->
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- TAB: REPORT                                 -->
+    <!-- ══════════════════════════════════════════ -->
+    <div id="tab-report" style="display:none;">
+      <div class="dashboard-toolbar">
+        <h2 class="tab-title-inline">&#128200; Report</h2>
+        <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
+      </div>
+      <p class="report-caveat">
+        &#8505;&#65039; La "Data Pagamento" qui sotto è il momento in cui un operatore ha
+        validato il pagamento, non necessariamente quando il bonifico è realmente arrivato in
+        banca — e viene sovrascritta da qualunque altra modifica successiva alla stessa riga
+        (es. correzione email). È la miglior approssimazione disponibile per il 2026, non un
+        dato esatto al 100%.
+      </p>
+      <div id="report-content">
+        <div class="dashboard-loading">Apertura tab per caricare i dati.</div>
+      </div>
+    </div><!-- /tab-report -->
 
     <!-- ══════════════════════════════════════════ -->
     <!-- TAB: Gestione Utenti (solo administrator)  -->

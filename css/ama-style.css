@@ -1650,3 +1650,107 @@ th.sortable:hover  { background: #133570; }
 }
 .gu-link-cambia-password:hover { text-decoration: underline; }
 
+/* ══════════════════════════════════════
+   REPORT (statistiche post-evento)
+══════════════════════════════════════ */
+.report-caveat {
+  background: rgba(8,38,82,0.05);
+  border-left: 4px solid var(--gold);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--deep-blue);
+  opacity: 0.85;
+  margin-bottom: 18px;
+}
+
+.report-tiles {
+  /* 4 colonne fisse per gli 8 indicatori attuali (2 righe da 4): se in futuro se ne aggiunge un
+     9°, seguendo la stessa logica di distribuzione equa passare a repeat(3, 1fr) */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.report-tile {
+  background: rgba(255,255,255,0.75);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(8,38,82,0.08);
+}
+.report-tile-val {
+  font-size: 1.6em;
+  font-weight: 800;
+  color: var(--deep-blue);
+}
+.report-tile-lbl {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--deep-blue);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.report-tile-sub {
+  font-size: 11px;
+  color: var(--deep-blue);
+  opacity: 0.55;
+  margin-top: 4px;
+}
+
+/* Righe esplicite (raggruppate per significato: iscrizioni / validazioni / ingressi), invece di
+   un unico grid auto-fit che ridistribuiva i box in modo imprevedibile */
+.report-charts-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.report-charts-row-single {
+  grid-template-columns: 1fr;
+}
+.report-chart-box {
+  background: rgba(255,255,255,0.75);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(8,38,82,0.08);
+}
+.report-chart-box h3 {
+  font-size: 0.95em;
+  color: var(--deep-blue);
+  margin: 0 0 12px;
+}
+.report-chart-box canvas {
+  max-height: 240px;
+}
+
+.report-table-toggle {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.report-table-toggle summary {
+  cursor: pointer;
+  color: var(--deep-blue);
+  opacity: 0.7;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.report-table-toggle table {
+  width: 100%;
+  margin-top: 8px;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.report-table-toggle th, .report-table-toggle td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(8,38,82,0.08);
+  text-align: left;
+}
+
+@media (max-width: 600px) {
+  .report-tiles      { grid-template-columns: repeat(2, 1fr); }
+  .report-charts-row { grid-template-columns: 1fr; }
+}
+
