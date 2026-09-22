@@ -2665,6 +2665,7 @@ function renderDashboardCucina(data) {
 // REPORT (statistiche post-evento)
 // =====================
 let _reportCharts = {}; // canvasId -> istanza Chart.js, per distruggerle prima di ridisegnare
+let _reportExportData = null; // ultimo riepilogo/grafici renderizzati, per l'export PDF
 
 // Colori dalla palette validata (skill dataviz): slot 1/2/3 dell'ordine categoriale, gli unici
 // tre garantiti "all-pairs" CVD-safe insieme. Ingressi in violetto per coerenza con il badge
@@ -2707,6 +2708,56 @@ function renderReport(data) {
 
   const _ingressiOraAttivi = _ritagliaOreAttive(s.ingressiPerMezzora, s.ingressiPerMezzoraPersone);
 
+  // Un solo posto dove elencare i 5 grafici: usato sia per il template HTML (tabella
+  // accessibile) sia per l'export PDF, così le due viste non possono disallinearsi.
+  const grafici = [
+    {
+      titolo: 'Iscrizioni per giorno', canvasId: 'chart-iscrizioni-giorno',
+      headers: ['Giorno', 'Iscrizioni', 'Persone'], righe: s.iscrizioniPerGiorno.map(x => [x.data, x.conteggio, x.persone]),
+      serie: [
+        { label: 'Iscrizioni', dati: s.iscrizioniPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.iscrizioni.biglietti },
+        { label: 'Persone',    dati: s.iscrizioniPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.iscrizioni.persone }
+      ],
+      labels: s.iscrizioniPerGiorno.map(x => x.data)
+    },
+    {
+      titolo: 'Iscrizioni per fascia oraria', canvasId: 'chart-iscrizioni-ora',
+      headers: ['Ora', 'Iscrizioni', 'Persone'], righe: s.iscrizioniPerOra.map((v, i) => [i + ':00', v, s.iscrizioniPerOraPersone[i]]),
+      serie: [
+        { label: 'Iscrizioni', dati: s.iscrizioniPerOra,        colore: _REPORT_COLORE.iscrizioni.biglietti },
+        { label: 'Persone',    dati: s.iscrizioniPerOraPersone, colore: _REPORT_COLORE.iscrizioni.persone }
+      ],
+      labels: _oreLabels(), opzioni: { oreComplete: true }
+    },
+    {
+      titolo: 'Validazioni per giorno', canvasId: 'chart-pagamenti-giorno',
+      headers: ['Giorno', 'Validazioni', 'Persone'], righe: s.pagamentiPerGiorno.map(x => [x.data, x.conteggio, x.persone]),
+      serie: [
+        { label: 'Validazioni', dati: s.pagamentiPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.pagamenti.biglietti },
+        { label: 'Persone',     dati: s.pagamentiPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.pagamenti.persone }
+      ],
+      labels: s.pagamentiPerGiorno.map(x => x.data)
+    },
+    {
+      titolo: 'Validazioni per fascia oraria', canvasId: 'chart-pagamenti-ora',
+      headers: ['Ora', 'Validazioni', 'Persone'], righe: s.pagamentiPerOra.map((v, i) => [i + ':00', v, s.pagamentiPerOraPersone[i]]),
+      serie: [
+        { label: 'Validazioni', dati: s.pagamentiPerOra,        colore: _REPORT_COLORE.pagamenti.biglietti },
+        { label: 'Persone',     dati: s.pagamentiPerOraPersone, colore: _REPORT_COLORE.pagamenti.persone }
+      ],
+      labels: _oreLabels(), opzioni: { oreComplete: true }
+    },
+    {
+      titolo: 'Ingressi ogni 30 minuti (giorno evento)', canvasId: 'chart-ingressi-ora',
+      headers: ['Ora', 'Ingressi', 'Persone'], righe: _ingressiOraAttivi.righe,
+      serie: [
+        { label: 'Ingressi', dati: _ingressiOraAttivi.valori,  colore: _REPORT_COLORE.ingressi.biglietti },
+        { label: 'Persone',  dati: _ingressiOraAttivi.persone, colore: _REPORT_COLORE.ingressi.persone }
+      ],
+      labels: _ingressiOraAttivi.labels, opzioni: { oreComplete: true }
+    }
+  ];
+
   document.getElementById('report-content').innerHTML = `
     <div class="report-tiles">
       ${tile('Iscritti totali', r.totaleIscritti, r.totalePersoneIscritte + ' persone')}
@@ -2721,57 +2772,57 @@ function renderReport(data) {
 
     <div class="report-charts-row">
       <div class="report-chart-box">
-        <h3>Iscrizioni per giorno</h3>
-        <canvas id="chart-iscrizioni-giorno"></canvas>
-        ${_tabellaToggle('tbl-iscrizioni-giorno', ['Giorno', 'Iscrizioni', 'Persone'], s.iscrizioniPerGiorno.map(x => [x.data, x.conteggio, x.persone]))}
+        <h3>${grafici[0].titolo}</h3>
+        <canvas id="${grafici[0].canvasId}"></canvas>
+        ${_tabellaToggle('tbl-iscrizioni-giorno', grafici[0].headers, grafici[0].righe)}
       </div>
       <div class="report-chart-box">
-        <h3>Iscrizioni per fascia oraria</h3>
-        <canvas id="chart-iscrizioni-ora"></canvas>
-        ${_tabellaToggle('tbl-iscrizioni-ora', ['Ora', 'Iscrizioni', 'Persone'], s.iscrizioniPerOra.map((v, i) => [i + ':00', v, s.iscrizioniPerOraPersone[i]]))}
+        <h3>${grafici[1].titolo}</h3>
+        <canvas id="${grafici[1].canvasId}"></canvas>
+        ${_tabellaToggle('tbl-iscrizioni-ora', grafici[1].headers, grafici[1].righe)}
       </div>
     </div>
     <div class="report-charts-row">
       <div class="report-chart-box">
-        <h3>Validazioni per giorno</h3>
-        <canvas id="chart-pagamenti-giorno"></canvas>
-        ${_tabellaToggle('tbl-pagamenti-giorno', ['Giorno', 'Validazioni', 'Persone'], s.pagamentiPerGiorno.map(x => [x.data, x.conteggio, x.persone]))}
+        <h3>${grafici[2].titolo}</h3>
+        <canvas id="${grafici[2].canvasId}"></canvas>
+        ${_tabellaToggle('tbl-pagamenti-giorno', grafici[2].headers, grafici[2].righe)}
       </div>
       <div class="report-chart-box">
-        <h3>Validazioni per fascia oraria</h3>
-        <canvas id="chart-pagamenti-ora"></canvas>
-        ${_tabellaToggle('tbl-pagamenti-ora', ['Ora', 'Validazioni', 'Persone'], s.pagamentiPerOra.map((v, i) => [i + ':00', v, s.pagamentiPerOraPersone[i]]))}
+        <h3>${grafici[3].titolo}</h3>
+        <canvas id="${grafici[3].canvasId}"></canvas>
+        ${_tabellaToggle('tbl-pagamenti-ora', grafici[3].headers, grafici[3].righe)}
       </div>
     </div>
     <div class="report-charts-row report-charts-row-single">
       <div class="report-chart-box">
-        <h3>Ingressi ogni 30 minuti (giorno evento)</h3>
-        <canvas id="chart-ingressi-ora"></canvas>
-        ${_tabellaToggle('tbl-ingressi-ora', ['Ora', 'Ingressi', 'Persone'], _ingressiOraAttivi.righe)}
+        <h3>${grafici[4].titolo}</h3>
+        <canvas id="${grafici[4].canvasId}"></canvas>
+        ${_tabellaToggle('tbl-ingressi-ora', grafici[4].headers, grafici[4].righe)}
       </div>
     </div>
   `;
 
-  _renderBarChart('chart-iscrizioni-giorno', s.iscrizioniPerGiorno.map(x => x.data), [
-    { label: 'Iscrizioni', dati: s.iscrizioniPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.iscrizioni.biglietti },
-    { label: 'Persone',    dati: s.iscrizioniPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.iscrizioni.persone }
-  ]);
-  _renderBarChart('chart-pagamenti-giorno', s.pagamentiPerGiorno.map(x => x.data), [
-    { label: 'Validazioni', dati: s.pagamentiPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.pagamenti.biglietti },
-    { label: 'Persone',     dati: s.pagamentiPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.pagamenti.persone }
-  ]);
-  _renderBarChart('chart-iscrizioni-ora', _oreLabels(), [
-    { label: 'Iscrizioni', dati: s.iscrizioniPerOra,        colore: _REPORT_COLORE.iscrizioni.biglietti },
-    { label: 'Persone',    dati: s.iscrizioniPerOraPersone, colore: _REPORT_COLORE.iscrizioni.persone }
-  ], { oreComplete: true });
-  _renderBarChart('chart-pagamenti-ora', _oreLabels(), [
-    { label: 'Validazioni', dati: s.pagamentiPerOra,        colore: _REPORT_COLORE.pagamenti.biglietti },
-    { label: 'Persone',     dati: s.pagamentiPerOraPersone, colore: _REPORT_COLORE.pagamenti.persone }
-  ], { oreComplete: true });
-  _renderBarChart('chart-ingressi-ora', _ingressiOraAttivi.labels, [
-    { label: 'Ingressi', dati: _ingressiOraAttivi.valori,  colore: _REPORT_COLORE.ingressi.biglietti },
-    { label: 'Persone',  dati: _ingressiOraAttivi.persone, colore: _REPORT_COLORE.ingressi.persone }
-  ], { oreComplete: true });
+  grafici.forEach(g => _renderBarChart(g.canvasId, g.labels, g.serie, g.opzioni));
+
+  // Dati per l'export PDF (vedi esportaReportPdf): tile in testo semplice (niente entità HTML,
+  // jsPDF le stamperebbe letteralmente) + gli stessi identici grafici/tabelle appena disegnati.
+  _reportExportData = {
+    generatoIl: new Date(),
+    tiles: [
+      { label: 'Iscritti totali',       value: r.totaleIscritti, sub: r.totalePersoneIscritte + ' persone' },
+      { label: 'Confermati (pagato)',   value: r.totalePagati,   sub: r.totalePersonePagate + ' persone' },
+      { label: 'Entrati',               value: r.totaleEntrati,  sub: r.totalePersoneEntrate + ' persone' },
+      { label: 'No-show',               value: r.noShow,         sub: r.totalePersoneNoShow + ' persone' },
+      { label: 'Cancellati',            value: r.totaleCancellati, sub: '' },
+      { label: 'Tempo medio registrazione -> pagamento', value: r.tempoMedioRegistrazionePagamentoOre !== null ? r.tempoMedioRegistrazionePagamentoOre + ' h' : '-', sub: '' },
+      { label: 'Ritmo ingressi (mediana tra un ingresso e il successivo)', value: r.medianaIntervalloIngressiSecondi !== null ? _formattaSecondi(r.medianaIntervalloIngressiSecondi) : '-', sub: '' },
+      { label: 'Primo -> ultimo ingresso', value: r.primoIngresso ? oraDa(r.primoIngresso) + ' -> ' + oraDa(r.ultimoIngresso) : '-', sub: '' }
+    ],
+    grafici
+  };
+  const btnPdf = document.getElementById('btn-esporta-report-pdf');
+  if (btnPdf) btnPdf.style.display = 'inline-block';
 }
 
 /**
@@ -2872,4 +2923,79 @@ function _renderBarChart(canvasId, labels, serie, opzioni) {
       }
     }
   });
+}
+
+/**
+ * Esporta l'ultimo Report renderizzato in un PDF: riepilogo indicatori + un grafico per pagina
+ * (immagine PNG presa direttamente dal canvas Chart.js con toBase64Image, niente screenshot) con
+ * la relativa tabella dati sotto. Tutto lato client (jsPDF + plugin autoTable, vendorizzati),
+ * nessuna chiamata al backend.
+ */
+function esportaReportPdf(btn) {
+  if (!_reportExportData || !window.jspdf) {
+    alert('Dati non disponibili: aggiorna il report prima di esportare.');
+    return;
+  }
+
+  btn.disabled = true;
+  const testoOriginale = btn.innerText;
+  btn.innerText = 'Generazione...';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const marginX = 14;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - marginX * 2;
+
+    doc.setFontSize(16);
+    doc.text('Report - Le Mille e Una Notte 2026', marginX, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(`Generato il ${_reportExportData.generatoIl.toLocaleString('it-IT')}`, marginX, 24);
+    doc.setTextColor(0);
+
+    doc.autoTable({
+      startY: 30,
+      head: [['Indicatore', 'Valore']],
+      body: _reportExportData.tiles.map(t => [t.label, t.sub ? `${t.value} (${t.sub})` : `${t.value}`]),
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [8, 38, 82] },
+      margin: { left: marginX, right: marginX }
+    });
+
+    _reportExportData.grafici.forEach(g => {
+      doc.addPage();
+      doc.setFontSize(13);
+      doc.text(g.titolo, marginX, 18);
+
+      const canvas = document.getElementById(g.canvasId);
+      const chart = _reportCharts[g.canvasId];
+      let y = 24;
+      if (chart && canvas) {
+        const imgWidth  = contentWidth;
+        const imgHeight = imgWidth * (canvas.height / canvas.width);
+        doc.addImage(chart.toBase64Image('image/png', 1.0), 'PNG', marginX, y, imgWidth, imgHeight);
+        y += imgHeight + 6;
+      }
+
+      doc.autoTable({
+        startY: y,
+        head: [g.headers],
+        body: g.righe,
+        styles: { fontSize: 8, cellPadding: 1.5 },
+        headStyles: { fillColor: [8, 38, 82] },
+        margin: { left: marginX, right: marginX }
+      });
+    });
+
+    const nomeFile = `report-mille-e-una-notte-${_reportExportData.generatoIl.toISOString().slice(0, 10)}.pdf`;
+    doc.save(nomeFile);
+  } catch (err) {
+    console.error(err);
+    alert('Errore durante la generazione del PDF.');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = testoOriginale;
+  }
 }

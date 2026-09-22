@@ -10,6 +10,8 @@
   <script src="./js/vendor/xlsx-js-style.min.js"></script>
   <script src="./js/vendor/Sortable.min.js"></script>
   <script src="./js/vendor/chart.umd.min.js"></script>
+  <script src="./js/vendor/jspdf.umd.min.js"></script>
+  <script src="./js/vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
@@ -394,7 +396,10 @@
     <div id="tab-report" style="display:none;">
       <div class="dashboard-toolbar">
         <h2 class="tab-title-inline">&#128200; Report</h2>
-        <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
+        <div class="gu-sezione-azioni">
+          <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
+          <button class="btn-small-outline" id="btn-esporta-report-pdf" style="display:none;" onclick="esportaReportPdf(this)">&#128196; Esporta PDF</button>
+        </div>
       </div>
       <p class="report-caveat">
         &#8505;&#65039; La "Data Pagamento" qui sotto è il momento in cui un operatore ha
