@@ -2937,9 +2937,10 @@ function esportaReportPdf(btn) {
     return;
   }
 
+  const label = document.getElementById('btn-esporta-report-pdf-label');
   btn.disabled = true;
-  const testoOriginale = btn.innerText;
-  btn.innerText = 'Generazione...';
+  const testoOriginale = label ? label.innerText : btn.innerText;
+  if (label) label.innerText = 'Generazione...'; else btn.innerText = 'Generazione...';
 
   try {
     const { jsPDF } = window.jspdf;
@@ -2996,6 +2997,6 @@ function esportaReportPdf(btn) {
     alert('Errore durante la generazione del PDF.');
   } finally {
     btn.disabled = false;
-    btn.innerText = testoOriginale;
+    if (label) label.innerText = testoOriginale; else btn.innerText = testoOriginale;
   }
 }

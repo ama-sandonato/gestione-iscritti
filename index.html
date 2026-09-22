@@ -398,7 +398,14 @@
         <h2 class="tab-title-inline">&#128200; Report</h2>
         <div class="gu-sezione-azioni">
           <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
-          <button class="btn-small-outline" id="btn-esporta-report-pdf" style="display:none;" onclick="esportaReportPdf(this)">&#128196; Esporta PDF</button>
+          <button class="btn-small-outline" id="btn-esporta-report-pdf" style="display:none;" onclick="esportaReportPdf(this)">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px; margin-right:4px;">
+              <rect x="2" y="2" width="20" height="20" rx="4" fill="#c0392b"/>
+              <path d="M6 4 L15 4 L18 7 L18 20 L6 20 Z" fill="#ffffff"/>
+              <path d="M15 4 L15 7 L18 7 Z" fill="#c0392b"/>
+              <path d="M8 11h8M8 14h8M8 17h5" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
+            </svg><span id="btn-esporta-report-pdf-label">Esporta PDF</span>
+          </button>
         </div>
       </div>
       <p class="report-caveat">
