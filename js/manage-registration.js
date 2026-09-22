@@ -2669,10 +2669,14 @@ let _reportCharts = {}; // canvasId -> istanza Chart.js, per distruggerle prima 
 // Colori dalla palette validata (skill dataviz): slot 1/2/3 dell'ordine categoriale, gli unici
 // tre garantiti "all-pairs" CVD-safe insieme. Ingressi in violetto per coerenza con il badge
 // "Entrato" già usato nel tab Confermati (stessa famiglia di colore per lo stesso concetto).
+// Ogni grafico ora ha 2 serie (biglietti/prenotazioni vs persone): l'identità categoriale resta
+// nella tinta (blu=iscrizioni, arancio=validazioni, viola=ingressi), biglietti/persone si
+// distinguono per luminosità della stessa tinta — non due tinte scorrelate — ed entrambe restano
+// sulla stessa scala (nessun doppio asse).
 const _REPORT_COLORE = {
-  iscrizioni: '#2a78d6', // blu
-  pagamenti:  '#eb6834', // arancione
-  ingressi:   '#4a3aa7'  // violetto
+  iscrizioni: { biglietti: '#2a78d6', persone: '#a9c9ee' },
+  pagamenti:  { biglietti: '#eb6834', persone: '#f5c3ab' },
+  ingressi:   { biglietti: '#4a3aa7', persone: '#beb3e0' }
 };
 
 function loadReport() {
@@ -2701,14 +2705,14 @@ function renderReport(data) {
 
   const oraDa = (dt) => dt ? dt.split(' ')[1] : '&#8212;';
 
-  const _ingressiOraAttivi = _ritagliaOreAttive(s.ingressiPerMezzora);
+  const _ingressiOraAttivi = _ritagliaOreAttive(s.ingressiPerMezzora, s.ingressiPerMezzoraPersone);
 
   document.getElementById('report-content').innerHTML = `
     <div class="report-tiles">
-      ${tile('Iscritti totali', r.totaleIscritti)}
-      ${tile('Confermati (pagato)', r.totalePagati)}
-      ${tile('Entrati', r.totaleEntrati)}
-      ${tile('No-show', r.noShow, r.totalePagati > 0 ? r.percentualeNoShow + '% dei pagati' : '')}
+      ${tile('Iscritti totali', r.totaleIscritti, r.totalePersoneIscritte + ' persone')}
+      ${tile('Confermati (pagato)', r.totalePagati, r.totalePersonePagate + ' persone')}
+      ${tile('Entrati', r.totaleEntrati, r.totalePersoneEntrate + ' persone')}
+      ${tile('No-show', r.noShow, r.totalePersoneNoShow + ' persone')}
       ${tile('Cancellati', r.totaleCancellati)}
       ${tile('Tempo medio reg.&rarr;pag.', r.tempoMedioRegistrazionePagamentoOre !== null ? r.tempoMedioRegistrazionePagamentoOre + ' h' : '&#8212;')}
       ${tile('Ritmo ingressi (mediana)', r.medianaIntervalloIngressiSecondi !== null ? _formattaSecondi(r.medianaIntervalloIngressiSecondi) : '&#8212;', 'tra un ingresso e il successivo')}
@@ -2719,59 +2723,76 @@ function renderReport(data) {
       <div class="report-chart-box">
         <h3>Iscrizioni per giorno</h3>
         <canvas id="chart-iscrizioni-giorno"></canvas>
-        ${_tabellaToggle('tbl-iscrizioni-giorno', ['Giorno', 'Iscrizioni'], s.iscrizioniPerGiorno.map(x => [x.data, x.conteggio]))}
+        ${_tabellaToggle('tbl-iscrizioni-giorno', ['Giorno', 'Iscrizioni', 'Persone'], s.iscrizioniPerGiorno.map(x => [x.data, x.conteggio, x.persone]))}
       </div>
       <div class="report-chart-box">
         <h3>Iscrizioni per fascia oraria</h3>
         <canvas id="chart-iscrizioni-ora"></canvas>
-        ${_tabellaToggle('tbl-iscrizioni-ora', ['Ora', 'Iscrizioni'], s.iscrizioniPerOra.map((v, i) => [i + ':00', v]))}
+        ${_tabellaToggle('tbl-iscrizioni-ora', ['Ora', 'Iscrizioni', 'Persone'], s.iscrizioniPerOra.map((v, i) => [i + ':00', v, s.iscrizioniPerOraPersone[i]]))}
       </div>
     </div>
     <div class="report-charts-row">
       <div class="report-chart-box">
         <h3>Validazioni per giorno</h3>
         <canvas id="chart-pagamenti-giorno"></canvas>
-        ${_tabellaToggle('tbl-pagamenti-giorno', ['Giorno', 'Validazioni'], s.pagamentiPerGiorno.map(x => [x.data, x.conteggio]))}
+        ${_tabellaToggle('tbl-pagamenti-giorno', ['Giorno', 'Validazioni', 'Persone'], s.pagamentiPerGiorno.map(x => [x.data, x.conteggio, x.persone]))}
       </div>
       <div class="report-chart-box">
         <h3>Validazioni per fascia oraria</h3>
         <canvas id="chart-pagamenti-ora"></canvas>
-        ${_tabellaToggle('tbl-pagamenti-ora', ['Ora', 'Validazioni'], s.pagamentiPerOra.map((v, i) => [i + ':00', v]))}
+        ${_tabellaToggle('tbl-pagamenti-ora', ['Ora', 'Validazioni', 'Persone'], s.pagamentiPerOra.map((v, i) => [i + ':00', v, s.pagamentiPerOraPersone[i]]))}
       </div>
     </div>
     <div class="report-charts-row report-charts-row-single">
       <div class="report-chart-box">
         <h3>Ingressi ogni 30 minuti (giorno evento)</h3>
         <canvas id="chart-ingressi-ora"></canvas>
-        ${_tabellaToggle('tbl-ingressi-ora', ['Ora', 'Ingressi'], _ingressiOraAttivi.righe)}
+        ${_tabellaToggle('tbl-ingressi-ora', ['Ora', 'Ingressi', 'Persone'], _ingressiOraAttivi.righe)}
       </div>
     </div>
   `;
 
-  _renderBarChart('chart-iscrizioni-giorno', s.iscrizioniPerGiorno.map(x => x.data), s.iscrizioniPerGiorno.map(x => x.conteggio), _REPORT_COLORE.iscrizioni);
-  _renderBarChart('chart-pagamenti-giorno',  s.pagamentiPerGiorno.map(x => x.data),  s.pagamentiPerGiorno.map(x => x.conteggio),  _REPORT_COLORE.pagamenti);
-  _renderBarChart('chart-iscrizioni-ora', _oreLabels(), s.iscrizioniPerOra, _REPORT_COLORE.iscrizioni, { oreComplete: true });
-  _renderBarChart('chart-pagamenti-ora',  _oreLabels(), s.pagamentiPerOra,  _REPORT_COLORE.pagamenti,  { oreComplete: true });
-  _renderBarChart('chart-ingressi-ora',   _ingressiOraAttivi.labels, _ingressiOraAttivi.valori, _REPORT_COLORE.ingressi, { oreComplete: true });
+  _renderBarChart('chart-iscrizioni-giorno', s.iscrizioniPerGiorno.map(x => x.data), [
+    { label: 'Iscrizioni', dati: s.iscrizioniPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.iscrizioni.biglietti },
+    { label: 'Persone',    dati: s.iscrizioniPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.iscrizioni.persone }
+  ]);
+  _renderBarChart('chart-pagamenti-giorno', s.pagamentiPerGiorno.map(x => x.data), [
+    { label: 'Validazioni', dati: s.pagamentiPerGiorno.map(x => x.conteggio), colore: _REPORT_COLORE.pagamenti.biglietti },
+    { label: 'Persone',     dati: s.pagamentiPerGiorno.map(x => x.persone),   colore: _REPORT_COLORE.pagamenti.persone }
+  ]);
+  _renderBarChart('chart-iscrizioni-ora', _oreLabels(), [
+    { label: 'Iscrizioni', dati: s.iscrizioniPerOra,        colore: _REPORT_COLORE.iscrizioni.biglietti },
+    { label: 'Persone',    dati: s.iscrizioniPerOraPersone, colore: _REPORT_COLORE.iscrizioni.persone }
+  ], { oreComplete: true });
+  _renderBarChart('chart-pagamenti-ora', _oreLabels(), [
+    { label: 'Validazioni', dati: s.pagamentiPerOra,        colore: _REPORT_COLORE.pagamenti.biglietti },
+    { label: 'Persone',     dati: s.pagamentiPerOraPersone, colore: _REPORT_COLORE.pagamenti.persone }
+  ], { oreComplete: true });
+  _renderBarChart('chart-ingressi-ora', _ingressiOraAttivi.labels, [
+    { label: 'Ingressi', dati: _ingressiOraAttivi.valori,  colore: _REPORT_COLORE.ingressi.biglietti },
+    { label: 'Persone',  dati: _ingressiOraAttivi.persone, colore: _REPORT_COLORE.ingressi.persone }
+  ], { oreComplete: true });
 }
 
 /**
  * Ritaglia un array di fasce da mezz'ora (48 valori) alla sola parte "attiva": dalla prima alla
  * ultima mezz'ora con almeno un ingresso, inclusi eventuali zeri in mezzo (es. un calo
  * momentaneo). Fuori da quella fascia non c'è nulla da mostrare (giorno evento, non l'intera
- * giornata).
+ * giornata). L'array "persone" (parallelo, stesso indice) viene ritagliato con la STESSA
+ * finestra determinata dai biglietti, per restare allineato nei grafici/tabelle.
  */
-function _ritagliaOreAttive(valoriPerMezzora) {
+function _ritagliaOreAttive(valoriPerMezzora, valoriPerMezzoraPersone) {
   const primo = valoriPerMezzora.findIndex(v => v > 0);
-  if (primo === -1) return { labels: [], valori: [], righe: [] };
+  if (primo === -1) return { labels: [], valori: [], persone: [], righe: [] };
   let ultimo = primo;
   for (let i = valoriPerMezzora.length - 1; i >= 0; i--) {
     if (valoriPerMezzora[i] > 0) { ultimo = i; break; }
   }
-  const labels = _mezzoreLabels().slice(primo, ultimo + 1);
-  const valori = valoriPerMezzora.slice(primo, ultimo + 1);
-  const righe = valori.map((v, i) => [labels[i], v]);
-  return { labels, valori, righe };
+  const labels  = _mezzoreLabels().slice(primo, ultimo + 1);
+  const valori  = valoriPerMezzora.slice(primo, ultimo + 1);
+  const persone = (valoriPerMezzoraPersone || []).slice(primo, ultimo + 1);
+  const righe   = valori.map((v, i) => [labels[i], v, persone[i]]);
+  return { labels, valori, persone, righe };
 }
 
 function _oreLabels() {
@@ -2806,11 +2827,15 @@ function _tabellaToggle(id, headers, righe) {
 }
 
 /**
- * Grafico a barre monocromatico (una sola serie per grafico): niente legenda (non serve per una
- * serie sola, il titolo del box la identifica già), tooltip attivo al passaggio del mouse,
- * nessun doppio asse, barre sottili con estremità arrotondate. Vedi skill "dataviz".
+ * Grafico a barre raggruppate con N serie (es. biglietti + persone), stessa scala/asse per
+ * tutte (mai doppio asse, vedi skill "dataviz"). Con 1 sola serie niente legenda (il titolo del
+ * box la identifica già); con 2+ serie la legenda è sempre presente, perché l'identità delle
+ * serie non è più deducibile dal solo titolo. Tooltip attivo al passaggio del mouse, barre
+ * sottili con estremità arrotondate.
+ *
+ * @param {Array<{label:string, dati:number[], colore:string}>} serie
  */
-function _renderBarChart(canvasId, labels, dati, colore, opzioni) {
+function _renderBarChart(canvasId, labels, serie, opzioni) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   if (_reportCharts[canvasId]) _reportCharts[canvasId].destroy();
@@ -2827,17 +2852,18 @@ function _renderBarChart(canvasId, labels, dati, colore, opzioni) {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        data: dati,
-        backgroundColor: colore,
+      datasets: serie.map(s => ({
+        label: s.label,
+        data: s.dati,
+        backgroundColor: s.colore,
         borderRadius: 4,
         maxBarThickness: 28
-      }]
+      }))
     },
     options: {
       responsive: true,
       plugins: {
-        legend:  { display: false },
+        legend:  { display: serie.length > 1, labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: { enabled: true }
       },
       scales: {
