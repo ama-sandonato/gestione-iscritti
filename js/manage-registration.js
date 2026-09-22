@@ -2712,7 +2712,7 @@ function renderReport(data) {
       ${tile('Iscritti totali', r.totaleIscritti, r.totalePersoneIscritte + ' persone')}
       ${tile('Confermati (pagato)', r.totalePagati, r.totalePersonePagate + ' persone')}
       ${tile('Entrati', r.totaleEntrati, r.totalePersoneEntrate + ' persone')}
-      ${tile('No-show', r.noShow, r.totalePagati > 0 ? r.percentualeNoShow + '% dei pagati' : '')}
+      ${tile('No-show', r.noShow, r.totalePersoneNoShow + ' persone')}
       ${tile('Cancellati', r.totaleCancellati)}
       ${tile('Tempo medio reg.&rarr;pag.', r.tempoMedioRegistrazionePagamentoOre !== null ? r.tempoMedioRegistrazionePagamentoOre + ' h' : '&#8212;')}
       ${tile('Ritmo ingressi (mediana)', r.medianaIntervalloIngressiSecondi !== null ? _formattaSecondi(r.medianaIntervalloIngressiSecondi) : '&#8212;', 'tra un ingresso e il successivo')}
