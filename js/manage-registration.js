@@ -2886,11 +2886,7 @@ function _tabellaToggle(id, headers, righe) {
  *
  * @param {Array<{label:string, dati:number[], colore:string}>} serie
  */
-function _renderBarChart(canvasId, labels, serie, opzioni) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  if (_reportCharts[canvasId]) _reportCharts[canvasId].destroy();
-
+function _costruisciConfigGraficoBarre(labels, serie, opzioni) {
   // Chart.js di default "salta" le etichette dell'asse x quando non c'è spazio (autoSkip),
   // mostrandone una ogni due: per i grafici orari (24 categorie) vogliamo sempre una barra e
   // un'etichetta per ogni ora, quindi disattiviamo autoSkip e ruotiamo/rimpiccioliamo il testo.
@@ -2899,7 +2895,7 @@ function _renderBarChart(canvasId, labels, serie, opzioni) {
     ? { autoSkip: false, maxRotation: 90, minRotation: 45, font: { size: 9 } }
     : {};
 
-  _reportCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+  return {
     type: 'bar',
     data: {
       labels,
@@ -2922,7 +2918,37 @@ function _renderBarChart(canvasId, labels, serie, opzioni) {
         y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } }
       }
     }
-  });
+  };
+}
+
+function _renderBarChart(canvasId, labels, serie, opzioni) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (_reportCharts[canvasId]) _reportCharts[canvasId].destroy();
+  _reportCharts[canvasId] = new Chart(canvas.getContext('2d'), _costruisciConfigGraficoBarre(labels, serie, opzioni));
+}
+
+/**
+ * Ridisegna lo stesso grafico su un canvas "fuori schermo" a risoluzione fissa molto più alta di
+ * quella visualizzata a schermo, e ne restituisce il PNG. Serve per l'export PDF: prendere
+ * l'immagine direttamente dal canvas visibile a schermo la fa uscire sgranata nel PDF, perché lì
+ * viene ingrandita oltre la sua risoluzione reale (poche centinaia di pixel). Il canvas del
+ * grafico visibile a schermo non viene toccato.
+ */
+function _immagineGraficoAltaRisoluzione(labels, serie, opzioni, larghezzaPx, altezzaPx) {
+  const canvas = document.createElement('canvas');
+  canvas.width  = larghezzaPx;
+  canvas.height = altezzaPx;
+
+  const config = _costruisciConfigGraficoBarre(labels, serie, opzioni);
+  config.options.responsive  = false;
+  config.options.animation   = false;
+  config.options.devicePixelRatio = 1; // il canvas è già alla risoluzione target: niente moltiplicatori aggiuntivi
+
+  const chart = new Chart(canvas.getContext('2d'), config);
+  const immagine = chart.toBase64Image('image/png', 1.0);
+  chart.destroy();
+  return immagine;
 }
 
 /**
@@ -2970,15 +2996,14 @@ function esportaReportPdf(btn) {
       doc.setFontSize(13);
       doc.text(g.titolo, marginX, 18);
 
-      const canvas = document.getElementById(g.canvasId);
-      const chart = _reportCharts[g.canvasId];
-      let y = 24;
-      if (chart && canvas) {
-        const imgWidth  = contentWidth;
-        const imgHeight = imgWidth * (canvas.height / canvas.width);
-        doc.addImage(chart.toBase64Image('image/png', 1.0), 'PNG', marginX, y, imgWidth, imgHeight);
-        y += imgHeight + 6;
-      }
+      // Canvas fuori schermo a risoluzione fissa alta (non quella, molto più piccola, del
+      // grafico visibile a video) per un'immagine nitida anche ingrandita nel PDF.
+      const LARGHEZZA_PX = 1600, ALTEZZA_PX = 800;
+      const immagine = _immagineGraficoAltaRisoluzione(g.labels, g.serie, g.opzioni, LARGHEZZA_PX, ALTEZZA_PX);
+      const imgWidth  = contentWidth;
+      const imgHeight = imgWidth * (ALTEZZA_PX / LARGHEZZA_PX);
+      doc.addImage(immagine, 'PNG', marginX, 24, imgWidth, imgHeight);
+      let y = 24 + imgHeight + 6;
 
       doc.autoTable({
         startY: y,
