@@ -2885,15 +2885,22 @@ function _tabellaToggle(id, headers, righe) {
  * sottili con estremità arrotondate.
  *
  * @param {Array<{label:string, dati:number[], colore:string}>} serie
+ * @param {number} [scalaFont=1] Moltiplicatore delle dimensioni (font, barre, griglia): i font
+ *   di Chart.js sono in pixel assoluti sul canvas, non relativi alla sua dimensione — su un
+ *   canvas molto più grande (vedi _immagineGraficoAltaRisoluzione) le stesse dimensioni in px
+ *   restano invariate ma appaiono visivamente più piccole, quindi vanno scalate insieme alla
+ *   risoluzione del canvas.
  */
-function _costruisciConfigGraficoBarre(labels, serie, opzioni) {
+function _costruisciConfigGraficoBarre(labels, serie, opzioni, scalaFont) {
+  scalaFont = scalaFont || 1;
+
   // Chart.js di default "salta" le etichette dell'asse x quando non c'è spazio (autoSkip),
   // mostrandone una ogni due: per i grafici orari (24 categorie) vogliamo sempre una barra e
   // un'etichetta per ogni ora, quindi disattiviamo autoSkip e ruotiamo/rimpiccioliamo il testo.
   const oreComplete = !!(opzioni && opzioni.oreComplete);
   const xTicks = oreComplete
-    ? { autoSkip: false, maxRotation: 90, minRotation: 45, font: { size: 9 } }
-    : {};
+    ? { autoSkip: false, maxRotation: 90, minRotation: 45, font: { size: 9 * scalaFont } }
+    : { font: { size: 12 * scalaFont } };
 
   return {
     type: 'bar',
@@ -2903,19 +2910,23 @@ function _costruisciConfigGraficoBarre(labels, serie, opzioni) {
         label: s.label,
         data: s.dati,
         backgroundColor: s.colore,
-        borderRadius: 4,
-        maxBarThickness: 28
+        borderRadius: 4 * scalaFont,
+        maxBarThickness: 28 * scalaFont
       }))
     },
     options: {
       responsive: true,
       plugins: {
-        legend:  { display: serie.length > 1, labels: { boxWidth: 12, font: { size: 11 } } },
+        legend:  { display: serie.length > 1, labels: { boxWidth: 12 * scalaFont, font: { size: 11 * scalaFont } } },
         tooltip: { enabled: true }
       },
       scales: {
         x: { grid: { display: false }, ticks: xTicks },
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e1e0d9' } }
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0, font: { size: 12 * scalaFont } },
+          grid: { color: '#e1e0d9', lineWidth: scalaFont }
+        }
       }
     }
   };
@@ -2935,12 +2946,17 @@ function _renderBarChart(canvasId, labels, serie, opzioni) {
  * viene ingrandita oltre la sua risoluzione reale (poche centinaia di pixel). Il canvas del
  * grafico visibile a schermo non viene toccato.
  */
+// Larghezza approssimativa (px) di un grafico così come renderizzato a schermo: usata come
+// riferimento per calcolare di quanto scalare i font nel canvas offscreen, molto più grande.
+const _REPORT_LARGHEZZA_SCHERMO_PX = 550;
+
 function _immagineGraficoAltaRisoluzione(labels, serie, opzioni, larghezzaPx, altezzaPx) {
   const canvas = document.createElement('canvas');
   canvas.width  = larghezzaPx;
   canvas.height = altezzaPx;
 
-  const config = _costruisciConfigGraficoBarre(labels, serie, opzioni);
+  const scalaFont = larghezzaPx / _REPORT_LARGHEZZA_SCHERMO_PX;
+  const config = _costruisciConfigGraficoBarre(labels, serie, opzioni, scalaFont);
   config.options.responsive  = false;
   config.options.animation   = false;
   config.options.devicePixelRatio = 1; // il canvas è già alla risoluzione target: niente moltiplicatori aggiuntivi
