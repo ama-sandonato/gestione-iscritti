@@ -10,6 +10,8 @@
   <script src="./js/vendor/xlsx-js-style.min.js"></script>
   <script src="./js/vendor/Sortable.min.js"></script>
   <script src="./js/vendor/chart.umd.min.js"></script>
+  <script src="./js/vendor/jspdf.umd.min.js"></script>
+  <script src="./js/vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="./js/manage-registration.js"></script>
 </head>
 <body>
@@ -119,7 +121,7 @@
 
       <div class="export-toolbar">
         <button type="button" class="btn-icon-csv" id="btnEsportaPending" title="Esporta CSV" onclick="esportaPendingCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+          <img src="./images/icon-csv.png" width="34" height="34" alt="">
         </button>
       </div>
 
@@ -228,7 +230,7 @@
           </select>
           <button class="btn-conferma" onclick="loadOverdueRegistrants()">Carica elenco</button>
           <button type="button" class="btn-icon-csv" id="btnEsportaScordarelli" title="Esporta CSV" onclick="esportaScordarelliCsv(this)">
-            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+            <img src="./images/icon-csv.png" width="34" height="34" alt="">
           </button>
         </div>
       </div>
@@ -325,10 +327,10 @@
           <button type="button" class="filtro-stato-btn badge-stato-entrato" data-stato="ENTRATO" onclick="filtraStatoConfermati('ENTRATO', this)">Entrato</button>
         </div>
         <button type="button" class="btn-icon-csv" id="btnEsportaConfermati" title="Esporta CSV" onclick="esportaConfermatiCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+          <img src="./images/icon-csv.png" width="34" height="34" alt="">
         </button>
         <button type="button" class="btn-icon-csv" id="btnEsportaIngressiManuale" title="Esporta lista ingressi (backup gestione manuale)" onclick="esportaIngressiManualeCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="var(--deep-blue)"/><path d="M6 8h12M6 12h12M6 16h8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <img src="./images/icon-xls.png" width="34" height="34" alt="">
         </button>
       </div>
 
@@ -394,7 +396,12 @@
     <div id="tab-report" style="display:none;">
       <div class="dashboard-toolbar">
         <h2 class="tab-title-inline">&#128200; Report</h2>
-        <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
+        <div class="gu-sezione-azioni">
+          <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
+          <button class="btn-small-outline" id="btn-esporta-report-pdf" style="display:none;" onclick="esportaReportPdf(this)">
+            <img src="./images/icon-pdf.png" width="22" height="22" alt="" style="vertical-align:-7px; margin-right:5px;"><span id="btn-esporta-report-pdf-label">Esporta PDF</span>
+          </button>
+        </div>
       </div>
       <p class="report-caveat">
         &#8505;&#65039; La "Data Pagamento" qui sotto è il momento in cui un operatore ha
