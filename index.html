@@ -121,7 +121,7 @@
 
       <div class="export-toolbar">
         <button type="button" class="btn-icon-csv" id="btnEsportaPending" title="Esporta CSV" onclick="esportaPendingCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+          <img src="./images/icon-csv.png" width="34" height="34" alt="">
         </button>
       </div>
 
@@ -230,7 +230,7 @@
           </select>
           <button class="btn-conferma" onclick="loadOverdueRegistrants()">Carica elenco</button>
           <button type="button" class="btn-icon-csv" id="btnEsportaScordarelli" title="Esporta CSV" onclick="esportaScordarelliCsv(this)">
-            <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+            <img src="./images/icon-csv.png" width="34" height="34" alt="">
           </button>
         </div>
       </div>
@@ -327,10 +327,10 @@
           <button type="button" class="filtro-stato-btn badge-stato-entrato" data-stato="ENTRATO" onclick="filtraStatoConfermati('ENTRATO', this)">Entrato</button>
         </div>
         <button type="button" class="btn-icon-csv" id="btnEsportaConfermati" title="Esporta CSV" onclick="esportaConfermatiCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1e7145"/><path d="M2 9h20M2 15h20M9 2v20M15 2v20" stroke="#ffffff" stroke-width="1.3"/></svg>
+          <img src="./images/icon-csv.png" width="34" height="34" alt="">
         </button>
         <button type="button" class="btn-icon-csv" id="btnEsportaIngressiManuale" title="Esporta lista ingressi (backup gestione manuale)" onclick="esportaIngressiManualeCsv(this)">
-          <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="2" width="20" height="20" rx="4" fill="var(--deep-blue)"/><path d="M6 8h12M6 12h12M6 16h8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <img src="./images/icon-xls.png" width="34" height="34" alt="">
         </button>
       </div>
 
@@ -399,12 +399,7 @@
         <div class="gu-sezione-azioni">
           <button class="btn-small-outline" onclick="loadReport()">&#8635; Aggiorna</button>
           <button class="btn-small-outline" id="btn-esporta-report-pdf" style="display:none;" onclick="esportaReportPdf(this)">
-            <svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px; margin-right:4px;">
-              <rect x="2" y="2" width="20" height="20" rx="4" fill="#c0392b"/>
-              <path d="M6 4 L15 4 L18 7 L18 20 L6 20 Z" fill="#ffffff"/>
-              <path d="M15 4 L15 7 L18 7 Z" fill="#c0392b"/>
-              <path d="M8 11h8M8 14h8M8 17h5" stroke="#c0392b" stroke-width="1.2" stroke-linecap="round"/>
-            </svg><span id="btn-esporta-report-pdf-label">Esporta PDF</span>
+            <img src="./images/icon-pdf.png" width="22" height="22" alt="" style="vertical-align:-7px; margin-right:5px;"><span id="btn-esporta-report-pdf-label">Esporta PDF</span>
           </button>
         </div>
       </div>
